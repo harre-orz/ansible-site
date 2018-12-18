@@ -1,0 +1,35 @@
+---
+
+- name: append wheel for ansible_ssh_user
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups:
+      - "{{ os_spec.sudoers }}"
+    append: yes
+
+- name: add requiretty at /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    regexp: '^#?\s*Defaults\s+requiretty'
+    line: 'Defaults requiretty'
+    validate: visudo -cf %s
+    
+- name: add !requiretty at /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^Defaults:{{ item }}\\s*!requiretty"
+    insertafter: '^Defaults requiretty'
+    line: "Defaults:{{ item }} !requiretty"
+    validate: visudo -cf %s
+  with_items:
+    - "%{{ os_spec.sudoers }}"
+    - root
+
+- name: add %wheel ALL=(ALL) ALL at /etc/sudoers
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^#?\\s*%{{ os_spec.sudoers }}\\s+ALL=\\(ALL\\)\\s+ALL"
+    insertbefore: "^#?\\s*%{{ os_spec.sudoers }}\\s"
+    line: "%{{ os_spec.sudoers }} ALL=(ALL) ALL"
+    firstmatch: yes
+    validate: visudo -cf %s

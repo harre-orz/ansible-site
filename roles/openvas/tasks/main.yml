@@ -1,0 +1,25 @@
+---
+
+- name: install openvas for Archlinux
+  pacman:
+    name: openvas
+    update_cache: yes
+
+- name: initial setup
+  shell: |
+    set +e
+
+    # Create certificates for the server and clients, default values were used:
+    openvas-manage-certs -a -f
+
+    # Update the plugins and vulnerability data:
+    greenbone-nvt-sync
+    greenbone-scapdata-sync
+    greenbone-certdata-sync
+
+    # Start the openvas-scanner service, then rebuild the database:
+    #openvasmd --rebuild --progress
+
+    # Add an administrator user account, be sure to copy the password: 
+    #openvasmd --create-user=admin --role=Admin
+

@@ -1,0 +1,82 @@
+# {{ ansible_managed }}
+
+*filter
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+:OUTPUT DROP [0:0]
+:ICMP - [0:0]
+:IP_SPOOF - [0:0]
+:TCP - [0:0]
+:UDP - [0:0]
+-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+{% for iface in iptables.trust_interfaces | default([]) %}
+-A INPUT -i {{ iface }} -j ACCEPT
+{% endfor %}
+{% for iface in iptables.public_interfaces | default([]) %}
+-A INPUT -i {{ iface }} -j IP_SPOOF
+{% endfor %}
+-A INPUT -m recent --update --seconds 60 --name BLACKLIST --mask 255.255.255.255 --rsource -j DROP
+-A INPUT -p icmp -m length --length 0:85 -m limit --limit 1/sec --limit-burst 10 -j ICMP
+-A INPUT -p udp -m conntrack --ctstate NEW -j UDP
+-A INPUT -p tcp -m tcp --tcp-flags FIN,SYN,RST,ACK SYN -m conntrack --ctstate NEW -j TCP
+-A INPUT -j LOG --log-prefix "Blacklisted " --log-level info
+-A INPUT -m recent --set --name BLACKLIST --mask 255.255.255.255 --rsource
+-A OUTPUT -m conntrack --ctstate RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
+-A OUTPUT -o lo -j ACCEPT
+-A OUTPUT -p udp -m udp --dport 123 -j ACCEPT
+{% for sv in iptables.output_services | default([]) %}
+-A OUTPUT -p {{ sv.proto | default("tcp") }} -m {{ sv.proto | default("tcp") }} {%
+  if sv.iface is defined %}-o {{ sv.iface }} {% endif %}{%
+  if sv.source is defined %}-s {{ sv.source }} {% endif %}{%
+  if sv.dest is defined %}-d {{ sv.dest }} {% endif
+%}--dport {{ sv.port }} -j ACCEPT
+{% endfor %}
+-A OUTPUT -j LOG --log-prefix "Dropped outgoing " --log-level info
+-A ICMP -p icmp -m icmp --icmp-type 8 -j ACCEPT
+-A ICMP -p icmp -m icmp --icmp-type 17 -j ACCEPT
+-A ICMP -j DROP
+-A IP_SPOOF -s 127.0.0.0/8 -j DROP
+-A IP_SPOOF -s 10.0.0.0/8 -j DROP
+-A IP_SPOOF -s 172.16.0.0/12 -j DROP
+-A IP_SPOOF -s 192.168.0.0/16 -j DROP
+-A TCP -p tcp -m tcp --dport {{ sshd_port | default(22) }}  -j ACCEPT
+{% for sv in iptables.dns_services | default([]) %}
+-A TCP -p tcp -m tcp {%
+  if sv.iface is defined %} -i {{ sv.iface }} {% endif %} {%
+  if sv.source is defined %} -s {{ sv.source }} {% endif %} {%
+  if sv.dest is defined %} -d {{ sv.dest }} {% endif
+%} --dport {{ sv.port }} -j ACCEPT
+{% endfor %}
+{% for sv in iptables.tcp_services | default([]) %}
+-A TCP -p tcp -m tcp {%
+  if sv.iface is defined %} -i {{ sv.iface }} {% endif %} {%
+  if sv.source is defined %} -s {{ sv.source }} {% endif %} {%
+  if sv.dest is defined %} -d {{ sv.dest }} {% endif
+%} --dport {{ sv.port }} -j ACCEPT
+{% endfor %}
+-A TCP -p tcp -m limit --limit 1/sec --limit-burst 10 -j REJECT --reject-with tcp-reset
+{% for sv in iptables.udp_services | default([]) %}
+-A UDP -p udp -m udp {%
+  if sv.iface is defined %} -i {{ sv.iface }} {% endif %} {%
+  if sv.source is defined %} -s {{ sv.source }} {% endif %} {%
+  if sv.dest is defined %} -d {{ sv.dest }} {% endif
+%} --dport {{ sv.port }} -j ACCEPT
+{% endfor %}
+-A UDP -m limit --limit 1/sec --limit-burst 10 -j REJECT --reject-with icmp-port-unreachable
+COMMIT
+
+*raw
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+-A PREROUTING -p udp -m udp --sport 53 -j NOTRACK
+-A OUTPUT -p udp -m udp --dport 53 -j NOTRACK
+{% for sv in iptables.dns_services | default([]) %}
+-A PREROUTING -p udp -m udp {%
+  if sv.iface is defined %} -i {{ sv.iface }} {% endif %} {%
+  if sv.source is defined %} -s {{ sv.source }} {% endif %} {%
+  if sv.dest is defined %} -d {{ sv.dest }} {% endif
+%} --dport {{ sv.port }} -j NOTRACK
+-A OUTPUT -p udp -m udp --sport {{ sv.port }} -j NOTRACK
+{% endfor %}
+COMMIT

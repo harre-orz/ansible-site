@@ -1,0 +1,29 @@
+---
+
+- name: set timezone
+  timezone:
+    name: Asia/Tokyo
+
+- name: configure chrony.conf
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    backup: yes
+  notify: update ntp
+
+- name: enable chronyd
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+  notify: update ntp
+
+- name: goss for chrony
+  copy:
+    content: |
+      service:
+        chronyd:
+          running: true
+          enabled: true
+    dest: /etc/goss.d/chrony.yml
+  notify: validate goss

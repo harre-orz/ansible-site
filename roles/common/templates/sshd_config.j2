@@ -1,0 +1,21 @@
+# {{ ansible_managed }}
+
+# This is the sshd server system-wide configuration file.
+# See sshd_config(5) for more information.
+
+Port {{ sshd_port | default('22') }}
+AddressFamily {{ sshd_addrspec | default('any') }}
+
+PasswordAuthentication no
+ChallengeResponseAuthentication no
+PubkeyAuthentication yes
+PermitRootLogin no
+
+ClientAliveInterval 180
+ClientAliveCountMax 3
+
+UsePAM no
+UseDNS no
+X11Forwarding no
+Subsystem       sftp    /usr/lib/ssh/sftp-server
+AllowGroups sshuser

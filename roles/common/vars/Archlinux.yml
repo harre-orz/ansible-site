@@ -1,0 +1,10 @@
+os_spec:
+  require_packages:
+    - sudo
+    - tzdata
+    - openssh
+    - chrony
+  ssh_service: sshd
+  sudoers: wheel
+  iptables: /etc/iptables/iptables.rules
+  ip6tables: /etc/iptables/ip6tables.rules

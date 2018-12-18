@@ -1,0 +1,52 @@
+---
+
+- hosts: conohamaru
+  user: "{{ vault.conohamaru.user }}"
+  become: yes
+  vars:
+    ansible_become_pass: "{{ vault.conohamaru.pass }}"
+    iptables:
+      file: iptables_strict.j2
+      public_interfaces:
+        - eth0
+      tcp_services:
+        - port: 80
+        - port: 443
+        - port: 22000
+      output_services:
+        - port: 20
+        - port: 21
+        - port: 22
+        - port: 25
+        - port: 80
+        - port: 110
+        - port: 143
+        - port: 443
+        - port: 465
+        - port: 587
+        - port: 993
+        - port: 995
+    ip6tables:
+      file: ip6tables_strict.j2
+      public_interfaces:
+        - eth0
+      tcp_services:
+        - port: 80
+        - port: 443
+        - port: 22000
+      output_services:
+        - port: 20
+        - port: 21
+        - port: 22
+        - port: 25
+        - port: 80
+        - port: 110
+        - port: 143
+        - port: 443
+        - port: 465
+        - port: 587
+        - port: 993
+        - port: 995
+  roles:
+    - common
+#    - openvas

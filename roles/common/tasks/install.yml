@@ -1,0 +1,17 @@
+---
+
+- name: install packages for Archlinux
+  pacman:
+    name: "{{ os_spec.require_packages }}"
+    update_cache: yes
+  when: ansible_os_family == "Archlinux"
+
+- name: install packages for Debian
+  apt:
+    name: "{{ os_spec.require_packages }}"
+  when: ansible_os_family == "Debian"
+
+- name: install packages for RedHat
+  yum:
+    name: "{{ os_spec.require_packages }}"
+  when: ansible_os_family == "RedHat"

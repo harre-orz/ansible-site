@@ -1,0 +1,52 @@
+---
+
+- name: create sshusers
+  group:
+    name: sshusers
+
+- name: append sshusers for ansible_ssh_user
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: sshusers
+    append: yes
+
+- name: configure sshd
+  template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    backup: yes
+    validate: /usr/sbin/sshd -t -f %s
+  notify: restart sshd
+
+- name: enable sshd
+  service:
+    name: sshd
+    state: started
+    enabled: yes
+
+- name: goss for sshd
+  copy:
+    content: |
+      service:
+        sshd:
+          running: true
+          enabled: true
+      port:
+        tcp:22:
+          listening: true
+          ip:
+          - '0.0.0.0'
+      # tcp6:22:
+      #   listening: true
+      #   ip:
+      #   - '::'
+      user:
+        {{ ansible_ssh_user }}:
+          exists: true
+          groups:
+          - sshusers
+      group:
+        sshusers:
+          exists: true
+    dest: /etc/goss.d/sshd.yml
+  notify: validate goss
