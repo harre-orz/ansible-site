@@ -5,16 +5,16 @@
 :FORWARD DROP [0:0]
 :OUTPUT DROP [0:0]
 :ICMPv6 - [0:0]
-:IP_SPOOF - [0:0]
+:ANTI_SPOOFING - [0:0]
 :TCP - [0:0]
 :UDP - [0:0]
 -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED,UNTRACKED -j ACCEPT
 -A INPUT -i lo -j ACCEPT
-{% for iface in iptables.trust_interfaces | default([]) %}
+{% for iface in iptables.trusted_ifaces | default([]) %}
 -A INPUT -i {{ iface }} -j ACCEPT
 {% endfor %}
-{% for iface in iptables.public_interfaces | default([]) %}
--A INPUT -i {{ iface }} -j IP_SPOOF
+{% for iface in iptables.public_ifaces | default([]) %}
+-A INPUT -i {{ iface }} -j ANTI_SPOOFING
 {% endfor %}
 -A INPUT -m recent --update --seconds 60 --name BLACKLIST --mask ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff --rsource -j DROP
 -A INPUT -p ipv6-icmp -j ICMPv6
@@ -35,7 +35,8 @@
 {% endfor %}
 -A OUTPUT -j LOG --log-prefix "Dropped outgoing " --log-level 6
 -A ICMPv6 -j ACCEPT
--A IP_SPOOF -s ::1 -j DROP
+-A ANTI_SPOOFING -s ::1 -j DROP
+-A ANTI_SPOOFING -s fc00::/7 -j DROP
 -A TCP -p tcp -m tcp --dport {{ ssh_port | default(22) }} -j ACCEPT
 {% for sv in iptables.dns_services | default([]) %}
 -A TCP -p tcp -m tcp {%
