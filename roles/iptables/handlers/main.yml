@@ -1,0 +1,13 @@
+---
+
+- name: reload iptables
+  service:
+    name: iptables
+    state: reloaded
+    enabled: yes
+
+- name: reload ip6tables
+  service:
+    name: ip6tables
+    state: reloaded
+    enabled: yes

@@ -1,9 +1,5 @@
 ---
 
-- name: validate goss
-  shell: goss -g /etc/goss.yml v
-  ignore_errors: yes
-
 - name: restart sshd
   service:
     name: "{{ os_spec.ssh_service }}"
@@ -12,15 +8,3 @@
 - name: adjust ntp
   shell: chronyc activity
   ignore_errors: yes
-
-- name: reload iptables
-  service:
-    name: iptables
-    state: reloaded
-    enabled: yes
-
-- name: reload ip6tables
-  service:
-    name: ip6tables
-    state: reloaded
-    enabled: yes

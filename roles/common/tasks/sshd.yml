@@ -1,16 +1,16 @@
 ---
 
-- name: create sshusers
+- name: create sshusers group
   group:
     name: sshusers
 
-- name: append sshusers for ansible_ssh_user
+- name: append ansible_ssh_user to sshusers
   user:
     name: "{{ ansible_ssh_user }}"
     groups: sshusers
     append: yes
 
-- name: configure sshd
+- name: put sshd_config
   template:
     src: sshd_config.j2
     dest: /etc/ssh/sshd_config
@@ -18,13 +18,13 @@
     validate: /usr/sbin/sshd -t -f %s
   notify: restart sshd
 
-- name: enable sshd
+- name: start sshd
   service:
     name: sshd
     state: started
     enabled: yes
 
-- name: goss for sshd
+- name: put goss
   copy:
     content: |
       service:
@@ -48,5 +48,4 @@
       group:
         sshusers:
           exists: true
-    dest: /etc/goss.d/sshd.yml
-  notify: validate goss
+    dest: /usr/local/share/goss/sshd.yml

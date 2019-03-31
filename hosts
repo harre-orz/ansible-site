@@ -1,2 +1,6 @@
 [conohamaru]
 163.44.120.78
+
+[k8s]
+192.168.122.175 ansible_ssh_pass=root
+

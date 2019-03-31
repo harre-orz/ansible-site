@@ -1,0 +1,18 @@
+---
+
+- name: set facts for CentOS7
+  set_fact:
+    exec_pip: "/usr/bin/pip3.6"
+    exec_jupyterhub: "/usr/local/bin/jupyterhub"
+
+- name: install epel-release for CentOS7
+  yum:
+    name: epel-release
+
+- name: install pip3 and npm for CentOS7
+  yum:
+    name:
+      - python36
+      - python36-pip
+      - npm
+      - git

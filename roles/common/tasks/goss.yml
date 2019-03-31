@@ -11,24 +11,23 @@
     path: "{{ item }}"
     state: directory
   with_items:
-    - /etc/goss.d/
-    - /usr/share/ansible/
+    - /usr/local/share/goss
+    - /usr/local/share/ansible
 
 - name: install ansible goss module
   get_url:
     url: https://raw.githubusercontent.com/indusbox/goss-ansible/1.0.0/goss.py
-    dest: /usr/share/ansible/
+    dest: /usr/local/share/ansible
     mode: 0755
 
-- name: put goss.yml
+- name: put goss
   copy:
     content: |
       command:
-        goss -v:
+        /usr/local/bin/goss -v:
           exit-status: 0
           stdout:
           - "goss version v{{ goss.version }}"
       gossfile:
-        /etc/goss.d/*.yml: {}
-    dest: /etc/goss.yml
-  notify: validate goss
+        /usr/local/share/goss/*.yml: {}
+    dest: /usr/local/share/goss/goss.yaml

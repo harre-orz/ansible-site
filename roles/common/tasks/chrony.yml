@@ -18,12 +18,11 @@
     enabled: yes
   notify: update ntp
 
-- name: goss for chrony
+- name: put goss
   copy:
     content: |
       service:
         chronyd:
           running: true
           enabled: true
-    dest: /etc/goss.d/chrony.yml
-  notify: validate goss
+    dest: /usr/local/share/goss/chrony.yml

@@ -1,0 +1,79 @@
+---
+
+- include: centos-7.yml
+  when:
+    - ansible_distribution == "CentOS"
+    - ansible_distribution_major_version == "7"
+
+- name: install configurable-http-proxy
+  npm:
+    name: configurable-http-proxy
+    global: yes
+
+- name: install jupyterhub packages
+  pip:
+    name:
+      - notebook
+      - jupyterhub
+      - jupyter_contrib_nbextensions
+      - bash_kernel
+      - ipywidgets
+      - git+https://github.com/NII-cloud-operation/Jupyter-multi_outputs.git
+    executable: "{{ exec_pip }}"
+
+- name: put script file
+  copy:
+    src: "{{ item }}"
+    dest: /etc/jupyterhub/
+    mode: 0755
+  with_items:
+    - config.py
+    - bootstrap.sh
+    - 00-requires.py
+  notify: restart jupyterhub
+
+- name: put jupyterhub.service
+  copy:
+    content: |
+      [Unit]
+      Description = JupyterHub
+      
+      [Service]
+      ExecStart = "{{ exec_jupyterhub }}" --config=/etc/jupyterhub/config.py
+      Restart = always
+      Type = simple
+      
+      [Install]
+      WantedBy = multi-user.target
+    dest: /etc/systemd/system/jupyterhub.service
+  when: ansible_service_mgr == "systemd"
+  notify: restart jupyterhub
+
+- name: start jupyterhub
+  service:
+    name: jupyterhub
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: put goss
+  copy:
+    content: |
+      service:
+        jupyterhub:
+          running: true
+          enabled: true
+      port:
+        tcp6:8000:
+          listening: true
+          ip:
+            - '::'
+        tcp:8001:
+          listening: true
+          ip:
+            - '127.0.0.1'
+        tcp:8002:
+          listening: true
+          ip:
+            - '127.0.0.1'
+    dest: /usr/local/share/goss/jupyterhub.yml

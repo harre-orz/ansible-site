@@ -1,0 +1,29 @@
+---
+
+- name: put docker-ce.repo
+  copy:
+    src: docker-ce_{{ ansible_distribution }}-{{ ansible_distribution_major_version }}.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+  tags: k8s
+
+- name: put kubernetes.repo
+  copy:
+    src: kubernetes.repo
+    dest: /etc/yum.repos.d/kubernetes.repo
+  tags: k8s
+
+- name: install base packages
+  yum:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+  tags: k8s
+
+- name: install docker-ce/kubeadm packages
+  yum:
+    name:
+      - docker-ce
+      - kubeadm
+    state: present
+  tags: k8s

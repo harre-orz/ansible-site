@@ -1,0 +1,14 @@
+---
+
+- hosts: k8s
+  user: root
+  roles:
+    - role: common
+    - role: jupyterhub
+      tags: jupyterhub
+
+  post_tasks:
+    - name: run goss
+      shell: /usr/local/bin/goss -g /usr/local/share/goss/goss.yaml v
+      changed_when: False
+      tags: always

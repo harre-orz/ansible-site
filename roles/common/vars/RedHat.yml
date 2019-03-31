@@ -5,5 +5,5 @@ os_spec:
     - openssh
     - chrony
   ssh_service: sshd
-  sshd_sftp_server: /usr/lib/ssh/sftp-server
+  sshd_sftp_server: /usr/libexec/openssh/sftp-server
   sudoers: wheel

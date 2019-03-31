@@ -8,7 +8,7 @@
   include_vars: "{{ ansible_os_family }}.yml"
   tags: always
 
-- name: if disabled selinux
+- name: if disabled selinux?
   shell: "! (type getenforce > /dev/null) | grep -v Disabled"
   changed_when: False
 
@@ -17,4 +17,3 @@
 - include: chrony.yml
 - include: sshd.yml
 - include: sudoers.yml
-- include: iptables.yml

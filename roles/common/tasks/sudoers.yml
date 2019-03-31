@@ -7,23 +7,23 @@
       - "{{ os_spec.sudoers }}"
     append: yes
 
-- name: add requiretty at /etc/sudoers
-  lineinfile:
-    path: /etc/sudoers
-    regexp: '^#?\s*Defaults\s+requiretty'
-    line: 'Defaults requiretty'
-    validate: visudo -cf %s
+#- name: add requiretty at /etc/sudoers
+#  lineinfile:
+#    path: /etc/sudoers
+#    regexp: '^#?\s*Defaults\s+requiretty'
+#    line: 'Defaults requiretty'
+#    validate: visudo -cf %s
     
-- name: add !requiretty at /etc/sudoers
-  lineinfile:
-    path: /etc/sudoers
-    regexp: "^Defaults:{{ item }}\\s*!requiretty"
-    insertafter: '^Defaults requiretty'
-    line: "Defaults:{{ item }} !requiretty"
-    validate: visudo -cf %s
-  with_items:
-    - "%{{ os_spec.sudoers }}"
-    - root
+#- name: add !requiretty at /etc/sudoers
+#  lineinfile:
+#    path: /etc/sudoers
+#    regexp: "^Defaults:{{ item }}\\s*!requiretty"
+#    insertafter: '^Defaults requiretty'
+#    line: "Defaults:{{ item }} !requiretty"
+#    validate: visudo -cf %s
+#  with_items:
+#    - "%{{ os_spec.sudoers }}"
+#    - root
 
 - name: add %wheel ALL=(ALL) ALL at /etc/sudoers
   lineinfile:

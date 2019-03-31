@@ -1,0 +1,17 @@
+---
+
+- name: install for RedHat
+  yum:
+    name:
+      - openldap
+      - openldap-clients
+      - openldap-servers
+    state: present
+  when: ansible_os_family == "RedHat"
+  tags: openldap
+
+- name: enable openldap
+  service:
+    name: slapd
+    state: started
+    enabled: yes

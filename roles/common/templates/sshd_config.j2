@@ -9,7 +9,7 @@ AddressFamily {{ sshd_addrspec | default('any') }}
 PasswordAuthentication no
 ChallengeResponseAuthentication no
 PubkeyAuthentication yes
-PermitRootLogin no
+PermitRootLogin {{ sshd_root_login | default('without-password') }}
 
 ClientAliveInterval 180
 ClientAliveCountMax 3
@@ -17,5 +17,5 @@ ClientAliveCountMax 3
 UsePAM no
 UseDNS no
 X11Forwarding no
-Subsystem       sftp    /usr/lib/ssh/sftp-server
+Subsystem sftp {{ os_spec.sshd_sftp_server }}
 AllowGroups sshusers
