@@ -1,9 +1,6 @@
 ---
 
-- include: centos-7.yml
-  when:
-    - ansible_distribution == "CentOS"
-    - ansible_distribution_major_version == "7"
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
 
 - name: install configurable-http-proxy
   npm:
@@ -19,15 +16,62 @@
       - bash_kernel
       - ipywidgets
       - git+https://github.com/NII-cloud-operation/Jupyter-multi_outputs.git
-    executable: "{{ exec_pip }}"
+    executable: "{{ python3_pip_executable }}"
+
+- name: create /etc/jupyterhub/ directory
+  file:
+    path: /etc/jupyterhub/
+    state: directory
+
+- name: generete /etc/jupyterhub/jupyterhub_config.py
+  shell: "{{ jupyterhub_executable }} --generate-config"
+  args:
+    chdir: /etc/jupyterhub/
+    creates: /etc/jupyterhub/jupyterhub_config.py
+
+- name: backup /etc/jupyterhub/jupyterhub_config.py
+  shell: cp -af /etc/jupyterhub/jupyterhub_config.py /etc/jupyterhub/jupyterhub_config.py.org
+  args:
+    creates: /etc/jupyterhub/jupyterhub_config.py.org
+
+- name: set jupyterhub.port in /etc/jupyterhub/jupyterhub_config.py
+  lineinfile:
+    path: /etc/jupyterhub/jupyterhub_config.py
+    insertafter: "^#c.JupyterHub.hub_port ="
+    regexp: "^c.JupyterHub.hub_port ="
+    line: "c.JupyterHub.hub_port = 8002"
+  notify: restart jupyterhub
+
+- name: disable open_sessions in /etc/jupyterhub/jupyterhub_config.py
+  lineinfile:
+    path: /etc/jupyterhub/jupyterhub_config.py
+    insertafter: "#c.PAMAuthenticator.open_sessions ="
+    regexp: "c.PAMAuthenticator.open_sessions ="
+    line: "c.PAMAuthenticator.open_sessions = False"
+  notify: restart jupyterhub
+
+- name: set pre spawn hook in /etc/jupyterhub/jupyterhub_config.py
+  blockinfile:
+    path: /etc/jupyterhub/jupyterhub_config.py
+    insertafter: "^#c.Spawner.pre_spawn_hook ="
+    block: |
+      import subprocess
+      c.Spawner.pre_spawn_hook = lambda spawner: subprocess.check_call(['/etc/jupyterhub/bootstrap.sh', spawner.user.name])
+
+- name: set login users in /etc/jupyterhub/jupyterhub_config.py
+  lineinfile:
+    path: /etc/jupyterhub/jupyterhub_config.py
+    insertafter: "^#c.Authenticator.whitelist ="
+    regexp: "^c.Authenticator.whitelist ="
+    line: "c.Authenticator.whitelist = { \"{{ jupyter_users | join('\", \"') }}\" }"
+  notify: restart jupyterhub
 
 - name: put script file
   copy:
     src: "{{ item }}"
-    dest: /etc/jupyterhub/
+    dest: "/etc/jupyterhub/{{ item }}"
     mode: 0755
   with_items:
-    - config.py
     - bootstrap.sh
     - 00-requires.py
   notify: restart jupyterhub
@@ -37,12 +81,12 @@
     content: |
       [Unit]
       Description = JupyterHub
-      
+
       [Service]
-      ExecStart = "{{ exec_jupyterhub }}" --config=/etc/jupyterhub/config.py
+      ExecStart = "{{ JUPYTERHUB_BIN }}" --config=/etc/jupyterhub/jupyterhub_config.py
       Restart = always
       Type = simple
-      
+
       [Install]
       WantedBy = multi-user.target
     dest: /etc/systemd/system/jupyterhub.service
@@ -58,6 +102,7 @@
 
 - name: put goss
   copy:
+    dest: /usr/local/share/goss/jupyterhub.yml
     content: |
       service:
         jupyterhub:
@@ -76,4 +121,3 @@
           listening: true
           ip:
             - '127.0.0.1'
-    dest: /usr/local/share/goss/jupyterhub.yml

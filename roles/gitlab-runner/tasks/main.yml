@@ -1,0 +1,14 @@
+---
+
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: backup /etc/gitlab-runner/config.toml
+  shell: cp -af /etc/gitlab-runner/config.toml /etc/gitlab-runner/config.toml.org
+  args:
+    creates: /etc/gitlab-runner/config.toml.org
+
+- name: start gitlab-runner
+  service:
+    name: gitlab-runner
+    state: started
+    enabled: yes

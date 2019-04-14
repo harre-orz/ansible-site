@@ -1,0 +1,9 @@
+---
+
+- name: install core packages for CentOS7
+  yum:
+    name:
+      - sudo
+      - tzdata
+      - openssh
+      - chrony

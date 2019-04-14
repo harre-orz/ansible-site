@@ -1,0 +1,4 @@
+---
+- name: install chrony
+  yum:
+    name: chrony

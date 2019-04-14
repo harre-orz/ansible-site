@@ -1,9 +1,0 @@
-os_spec:
-  require_packages:
-    - sudo
-    - tzdata
-    - openssh
-    - chrony
-  ssh_service: sshd
-  sshd_sftp_server: /usr/libexec/openssh/sftp-server
-  sudoers: wheel

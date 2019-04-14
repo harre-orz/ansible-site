@@ -1,0 +1,4 @@
+---
+sshd_conf: /etc/ssh/sshd_config
+sshd_executable: /usr/sbin/sshd
+sshd_service: sshd

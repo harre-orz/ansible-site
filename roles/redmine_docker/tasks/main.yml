@@ -1,0 +1,67 @@
+---
+- name: synchronize dockerhost
+  copy:
+    src: redmine-docker/
+    dest: "{{ redmine_docker_path }}"
+
+- name: git clone redmine
+  git:
+    repo: https://github.com/redmine/redmine.git
+    dest: "{{ redmine_docker_path }}/app/redmine"
+    version: 3.4.10
+    update: no
+
+- name: put redmine/config/databse.yml
+  copy:
+    dest: "{{ redmine_docker_path }}/app/redmine/config/database.yml"
+    content: |
+      production:
+        adapter: postgresql
+        database: {{ redmine_docker_db_database }}
+        host: db
+        username: {{ redmine_docker_db_username }}
+        password: "{{ redmine_docker_db_password }}"
+        encoding: utf8
+
+- name: put redmine/config/configuration.yml
+  template:
+    src: configuration.yml.j2
+    dest: "{{ redmine_docker_path }}/app/redmine/config/configuration.yml"
+
+- name: put redmine/config/additional_environment.yml
+  template:
+    src: additional_environment.yml
+    dest: "{{ redmine_docker_path }}/app/redmine/config/additional_environment.yml"
+
+- name: build redmine images
+  docker_image:
+    name: "redmine-{{ item }}"
+    path: "{{ redmine_docker_path }}/{{ item }}/"
+  with_items:
+    - db
+    - app
+    - web
+
+- name: build redmine network
+  docker_network:
+    name: redmine-network
+
+- name: start redmine-db
+  docker_container:
+    name: redmine-db
+    image: redmine-db
+    volumes:
+      - "/opt/redmine/volumes/db:/var/lib/postgresql/data:rw"
+    env:
+      POSTGRES_DB: "{{ redmine_docker_db_database }}"
+      POSTGRES_USER: "{{ redmine_docker_db_username }}"
+      POSTGRES_PASSWORD: "{{ redmine_docker_db_password }}"
+
+- name: start redmine-app
+  docker_container:
+    name: redmine-app
+    image: redmine-app
+    links:
+      - "redmine-db:db"
+    ports:
+      - "1234:8080"

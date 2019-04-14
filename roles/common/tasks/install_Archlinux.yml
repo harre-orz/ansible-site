@@ -1,0 +1,19 @@
+---
+
+- name: add archlinuxfr repository
+  blockinfile:
+    path: /etc/pacman.conf
+    block: |
+      [archlinuxfr]
+      SigLevel = Never
+      Server = http://repo.archlinux.fr/$arch
+
+- name: install core packages for Archlinux
+  pacman:
+    name:
+      - sudo
+      - tzdata
+      - openssh
+      - chrony
+      - ca-certificates-utils
+    update_cache: yes

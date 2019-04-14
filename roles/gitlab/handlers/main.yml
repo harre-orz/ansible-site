@@ -1,0 +1,4 @@
+---
+
+- name: reconfigure gitlab
+  shell: gitlab-ctl reconfigure

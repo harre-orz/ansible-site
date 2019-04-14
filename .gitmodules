@@ -1,0 +1,6 @@
+[submodule "roles/mattermost_docker/files/mattermost-docker"]
+	path = roles/mattermost_docker/files/mattermost-docker
+	url = https://github.com/mattermost/mattermost-docker.git
+[submodule "roles/redmine_docker/files/redmine/redmine/redmine"]
+	path = roles/redmine_docker/files/redmine/redmine/redmine
+	url = https://github.com/redmine/redmine.git

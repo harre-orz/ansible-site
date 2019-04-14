@@ -1,0 +1,64 @@
+---
+- name: install chrony
+  package:
+    name: chrony
+
+- name: set timezone to 'Asia/Tokyo'
+  timezone:
+    name: Asia/Tokyo
+
+- name: backup {{ chrony_conf }}
+  shell: "cp -af {{ chrony_conf }} {{ chrony_conf}}.org"
+  args:
+    creates: "{{ chrony_conf }}.org"
+
+- name: remove default ntp servers
+  replace:
+    dest: "{{ chrony_conf }}"
+    regexp: '^(server\s+.*\.ntp\.org\s+iburst)'
+    replace: '#\1'
+  notify: restart chronyd
+
+- name: set ntp servers
+  blockinfile:
+    path: "{{ chrony_conf }}"
+    insertafter: '^[#!]\s?server\s+'
+    block: |
+      {% for ip in ntp_servers %}
+      server {{ ip | ipaddr }} iburst
+      {% endfor %}
+  notify: restart chronyd
+
+- name: start chronyd
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+  notify: restart chronyd
+
+- name: put goss
+  copy:
+    dest: "{{ goss_workdir }}/chrony.yml"
+    content: |
+      service:
+        chronyd:
+          running: true
+          enabled: true
+      command:
+        chronyc activity:
+          exit-status: 0
+          stdout:
+            - " sources online"
+            - "!0 sources online"
+      file:
+        {{ chrony_conf }}:
+          exists: true
+          contains:
+      {% for ip in ntp_servers %}
+            - "server {{ ip }} iburst"
+      {% endfor %}
+        /etc/localtime:
+          exists: true
+          filetype: symlink
+          contains:
+            - JST-9

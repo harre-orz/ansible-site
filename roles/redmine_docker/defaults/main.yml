@@ -1,0 +1,4 @@
+---
+redmine_docker_db_database: production
+redmine_docker_db_username: redmine
+redmine_docker_db_password: redmine

@@ -1,0 +1,3 @@
+---
+sudo_executable: /sbin/visudo
+sudo_wheel: wheel

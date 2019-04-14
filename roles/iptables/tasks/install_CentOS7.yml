@@ -1,0 +1,10 @@
+---
+
+- name: remove firewalld
+  yum:
+    name: firewalld
+    state: removed
+
+- name: install iptables
+  yum:
+    name: iptables-services

@@ -1,0 +1,14 @@
+---
+- name: synchronize to dockerhost
+  copy:
+    src: mattermost-docker/
+    dest: "{{ mattermost_docker_path }}"
+
+- name: build
+  docker_image:
+    name: "{{ item }}"
+    path: "{{ mattermost_docker_path }}/{{ item }}"
+  with_items:
+    - app
+    - db
+    - web

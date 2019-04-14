@@ -1,0 +1,19 @@
+---
+
+- include_vars: "os_CentOS7.yml"
+
+- name: install epel-release for CentOS7
+  yum:
+    name: epel-release
+
+- name: install python3 and npm for CentOS7
+  yum:
+    name:
+      - python36
+      - npm
+      - git
+
+- name: install python3-pip for CentOS7
+  shell: curl -kL https://bootstrap.pypa.io/get-pip.py | python3
+  args:
+    creates: "{{ python3_pip_executable }}"

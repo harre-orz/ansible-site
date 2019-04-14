@@ -1,0 +1,11 @@
+---
+
+- name: add gitlab-ce repository
+  get_url:
+    dest: /etc/yum.repos.d/gitlab_gitlab-ce.repo
+    url: https://packages.gitlab.com/install/repositories/gitlab/gitlab-ce/config_file.repo?os=centos&dist=7&source=script
+
+- name: install gitlab-ce
+  yum:
+    name: gitlab-ce
+  notify: reconfigure gitlab

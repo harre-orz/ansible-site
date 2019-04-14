@@ -1,0 +1,23 @@
+---
+
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: backup /etc/gitlab/gitlab.rb
+  shell: cp -af /etc/gitlab/gitlab.rb /etc/gitlab/gitlab.rb.org
+  args:
+    creates: /etc/gitlab/gitlab.rb.org
+
+- name: set external_url
+  lineinfile:
+    path: /etc/gitlab/gitlab.rb
+    regexp: '^external_url '
+    line: "external_url 'http://192.168.56.101'"
+  notify: reconfigure gitlab
+
+- name: put goss
+  copy:
+    dest: /usr/local/share/goss/gitlab-ce.yml
+    content: |
+      command:
+        gitlab-ctl status:
+          exit-status: 0

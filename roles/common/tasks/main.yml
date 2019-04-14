@@ -1,19 +1,10 @@
 ---
-
-- name: set the architecture variables
-  include_vars: "{{ ansible_architecture }}.yml"
-  tags: always
-
-- name: set the OS specific variables
-  include_vars: "{{ ansible_os_family }}.yml"
-  tags: always
-
 - name: if disabled selinux?
   shell: "! (type getenforce > /dev/null) | grep -v Disabled"
   changed_when: False
 
 - include: goss.yml
-- include: install.yml
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
 - include: chrony.yml
 - include: sshd.yml
 - include: sudoers.yml

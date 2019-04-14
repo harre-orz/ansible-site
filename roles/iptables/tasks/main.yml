@@ -1,25 +1,25 @@
 ---
-  
-- name: configure iptables
-  template:
-    src: "{{ iptables.file }}"
-    dest: "{{ os_spec.iptables }}"
-    mode: 0600
-    validate: iptables-restore -t %s
-  when:
-    - iptables is defined
-    - iptables.file is defined
-  notify: reload iptables
-  tags: iptables
 
-- name: configure ip6tables
-  template:
-    src: "{{ ip6tables.file }}"
-    dest: "{{ os_spec.ip6tables }}"
-    mode: 0600
-    validate: ip6tables-restore -t %s
-  when:
-    - ip6tables is defined
-    - ip6tables.file is defined
-  notify: reload ip6tables
-  tags: iptables
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: start iptables
+  service:
+    name: iptables
+    state: started
+    enabled: yes
+
+- name: start ip6tables
+  service:
+    name: ip6tables
+    state: started
+    enabled: yes
+
+- name: put goss
+  copy:
+    dest: /usr/local/share/goss/iptables.yml
+    content: |
+      service:
+        iptables:
+          enabled: true
+        ip6tables:
+          enabled: true

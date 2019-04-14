@@ -1,0 +1,5 @@
+---
+# goss構成定義ファイルをすべて削除して再構成するか？
+#  yes:
+#  no :
+goss_rebuild_gossfiles: no

@@ -1,0 +1,119 @@
+---
+- name: include vars for Debian
+  include_vars: os_Debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: backup {{ sshd_conf }}
+  shell: "cp -af {{ sshd_conf }} {{ sshd_conf }}.org"
+  args:
+    creates: "{{ sshd_conf }}.org"
+
+- name: groupadd sshusers
+  group:
+    name: sshusers
+
+- name: "usermod -a -G sshusers {{ ansible_ssh_user }}"
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: sshusers
+    append: yes
+
+- set_fact:
+    sshd_config_params:
+      - { name: AllowGroups, value: sshusers }
+      - { name: PasswordAuthentication, value: "{{ sshd_ask_pass }}" }
+      - { name: ChallengeResponseAuthentication, value: 'no' }
+      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
+      - { name: UsePAM, value: 'yes' }
+      - { name: UseDNS, value: 'no' }
+
+- name: sshd listen port
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#Port "
+    regexp: "^Port "
+    line: "Port {{ sshd_port | int }}"
+  when: sshd_port | int != 22
+  notify: restart sshd
+
+- name: sshd address family
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#AddressFamily "
+    regexp: "^AddressFamily "
+    line: "AddressFamily {{ sshd_addrspec }}"
+  when:
+    - sshd_addrspec != "any"
+  notify: restart sshd
+
+- name: sshd listen address
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#ListenAddress "
+    regexp: "^ListenAddress "
+    line: "ListenAddress {{ sshd_address | ipaddr }}"
+  when:
+    - sshd_address != "0.0.0.0"
+    - sshd_address != "::"
+  notify: restart sshd
+
+- name: modify sshd_config
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#{{ item.name }} "
+    regexp: "^{{ item.name }} "
+    line: "{{ item.name }} {{ item.value }}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  with_items: "{{ sshd_config_params }}"
+  notify: restart sshd
+
+- name: start sshd
+  service:
+    name: "{{ sshd_service }}"
+    state: started
+    enabled: yes
+
+- name: put goss
+  copy:
+    dest: "{{ goss_workdir }}/sshd.yml"
+    content: |
+      service:
+        sshd:
+          running: true
+          enabled: true
+      port:
+      {% if sshd_addrspec != "inet6" %}
+        tcp:{{ sshd_port | int }}:
+          listening: true
+          ip:
+      {% if sshd_address == "::" %}
+            - "0.0.0.0"
+      {% else %}
+            - "{{ sshd_address | ipv4 }}"
+      {% endif %}
+      {% endif %}
+      {% if sshd_addrspec != "inet" %}
+      tcp6:{{ sshd_port | int }}:
+        listening: true
+        ip:
+      {% if sshd_address == "0.0.0.0" %}
+          - "::"
+      {% else %}
+          - "{{ sshd_address | ipv6 }}"
+      {% endif %}
+      {% endif %}
+      user:
+        {{ ansible_ssh_user }}:
+          exists: true
+          groups:
+            - "sshusers"
+      group:
+        sshusers:
+          exists: true
+      file:
+        {{ sshd_conf }}:
+          exists: true
+          contains:
+      {% for item in sshd_config_params %}
+            - "/^{{ item.name }} {{ item.value }}$/"
+      {% endfor %}

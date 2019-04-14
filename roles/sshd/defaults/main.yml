@@ -1,0 +1,28 @@
+---
+# サービスポート番号
+sshd_port: 22
+
+# アドレスファミリー
+#  any:
+#  inet:
+#  inet6:
+sshd_addrspec: any
+
+# 受け付けるアドレス
+#  '0.0.0.0'
+#  '::'
+sshd_address: '::'
+
+# パスワード認証を許可するか？
+#  'yes': 許可する
+#  'no' : 拒否する(公開鍵認証のみ)
+# 注意: シングルクォートで囲わないと True/False と解釈されてしまう
+sshd_ask_pass: 'yes'
+
+# rootログインを許可するか？
+#  'yes'               : 許可する(危険)
+#  'no'                : 拒否する
+#  without-password    : パスワード認証を拒否する
+#  forced-commands-only: 直接アクセスを拒否する
+# 注意: シングルクォートで囲わないと True/False と解釈されてしまう
+sshd_permit_root_login: 'no'

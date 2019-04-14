@@ -1,0 +1,53 @@
+---
+- include_vars: os_Debian.yml
+  when: ansible_os_family == "Debian"
+
+- name: install sudo
+  package:
+    name: sudo
+
+- name: "usermod -a -G {{ sudo_wheel }} {{ ansible_ssh_user }}"
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups:
+      - "{{ sudo_wheel }}"
+    append: yes
+
+- name: set '%wheel ALL=(ALL) ALL'
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
+    line: "%{{ sudo_wheel }} ALL=(ALL) ALL"
+    validate: "{{ sudo_executable }} -cf %s"
+  when: sudo_ask_pass | bool == True
+
+- name: set '%wheel ALL=(ALL)  NOPASSWD ALL'
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
+    line: "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+    validate: "{{ sudo_executable }} -cf %s"
+  when: sudo_ask_pass | bool == False
+
+- name: put goss
+  copy:
+    dest: "{{ goss_workdir }}/sudo.yml"
+    content: |
+      user:
+        {{ ansible_ssh_user }}:
+          exists: true
+          groups:
+            - "{{ sudo_wheel }}"
+      group:
+        {{ sudo_wheel }}:
+          exists: true
+      file:
+        /etc/sudoers:
+          exists: true
+          mode: "0440"
+          contains:
+      {% if sudo_ask_pass | bool %}
+            - "%{{ sudo_wheel }} ALL=(ALL) ALL"
+      {% else %}
+            - "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+      {% endif %}

@@ -1,0 +1,23 @@
+service:
+  chronyd:
+    running: true
+    enabled: true
+  command:
+    chronyc activity:
+      exit-status: 0
+        stdout:
+          - " sources online"
+          - "!0 sources online"
+  file:
+    {{ chrony_conf }}:
+      exists: true
+      contains:
+{% for ip in ntp_servers %}
+        - "server {{ ip }} iburst"
+       {% endfor %}
+      file:
+        /etc/localtime:
+          exists: true
+          filetype: symlink
+          contains:
+            - JST-9

@@ -1,6 +1,7 @@
-[conohamaru]
-163.44.120.78
+ovh
 
-[k8s]
-192.168.122.175 ansible_ssh_pass=root
+[gitlab]
+192.168.56.101
 
+[jupyterhub]
+192.168.56.101

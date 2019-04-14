@@ -1,0 +1,37 @@
+---
+
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: groupadd docker
+  group:
+    name: docker
+
+- name: usermod -a -G docker {{ ansible_ssh_user }}
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: docker
+    append: yes
+
+- name: start docker
+  service:
+    name: docker
+    state: started
+    enabled: yes
+
+- name: put goss
+  copy:
+    dest: /usr/local/share/goss/docker.yml
+    content: |
+      service:
+        docker:
+          running: true
+          enabled: true
+      group:
+        docker:
+          exists: true
+      file:
+        /var/run/docker.sock:
+          exists: true
+          mode: "0660"
+          owner: "root"
+          group: "docker"

@@ -1,0 +1,14 @@
+---
+- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+
+- name: backup {{ elasticsearch_conf }}
+  shell: "cp -af {{ elasticsearch_conf }} {{ elasticsearch_conf }}.org"
+  args:
+    creates: "{{ elasticsearch_conf }}.org"
+
+
+- name: start elasticsearch
+  service:
+    name: elasticsearch
+    state: stareted
+    enabled: yes

@@ -1,0 +1,6 @@
+---
+
+# sudo のときパスワード入力するか？
+#  yes:
+#  no:
+sudo_ask_pass: 'yes'

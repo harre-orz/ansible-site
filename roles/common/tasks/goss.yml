@@ -1,9 +1,11 @@
 ---
 
+- include_vars: "goss_{{ ansible_architecture }}.yml"
+
 - name: install goss
   get_url:
-    url: "https://github.com/aelsabbahy/goss/releases/download/v{{ goss.version }}/goss-linux-{{ goss.arch }}"
-    dest: "/usr/local/bin/goss"
+    url: "https://github.com/aelsabbahy/goss/releases/download/{{ GOSS_VERSION }}/goss-linux-{{ GOSS_ARCH }}"
+    dest: /usr/local/bin/goss
     mode: 0755
 
 - name: create directories
@@ -11,23 +13,23 @@
     path: "{{ item }}"
     state: directory
   with_items:
-    - /usr/local/share/goss
-    - /usr/local/share/ansible
+    - /usr/local/share/goss/
+    - /usr/local/share/ansible/
 
 - name: install ansible goss module
   get_url:
     url: https://raw.githubusercontent.com/indusbox/goss-ansible/1.0.0/goss.py
-    dest: /usr/local/share/ansible
+    dest: /usr/local/share/ansible/goss.py
     mode: 0755
 
 - name: put goss
   copy:
+    dest: /usr/local/share/goss/goss.yaml
     content: |
       command:
         /usr/local/bin/goss -v:
           exit-status: 0
           stdout:
-          - "goss version v{{ goss.version }}"
+          - "goss version {{ GOSS_VERSION }}"
       gossfile:
         /usr/local/share/goss/*.yml: {}
-    dest: /usr/local/share/goss/goss.yaml

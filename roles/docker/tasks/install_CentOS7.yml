@@ -1,0 +1,25 @@
+---
+
+- name: remove obsolute packages
+  yum:
+    state: removed
+    name:
+      - docker
+      - docker-common
+      - docker-engine
+
+- name: install requires packages
+  yum:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+
+- name: add docker-ce repository
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+
+- name: install docker-ce
+  yum:
+    name: docker-ce
