@@ -1,67 +1,101 @@
 ---
-- name: synchronize dockerhost
+- name: dockerパッケージを配置
   copy:
     src: redmine-docker/
     dest: "{{ redmine_docker_path }}"
+  tags: redmine
 
-- name: git clone redmine
+- name: githubからredmineリポジトリをpull
   git:
     repo: https://github.com/redmine/redmine.git
     dest: "{{ redmine_docker_path }}/app/redmine"
-    version: 3.4.10
-    update: no
+    version: "{{ redmine_docker_branch }}"
+  tags: redmine
 
-- name: put redmine/config/databse.yml
+- name: データベース設定ファイルを配置
   copy:
     dest: "{{ redmine_docker_path }}/app/redmine/config/database.yml"
     content: |
       production:
         adapter: postgresql
-        database: {{ redmine_docker_db_database }}
+        database: redmine_production
         host: db
         username: {{ redmine_docker_db_username }}
         password: "{{ redmine_docker_db_password }}"
         encoding: utf8
+  tags: redmine
 
-- name: put redmine/config/configuration.yml
+- name: グローバル設定ファイルを配置
   template:
     src: configuration.yml.j2
     dest: "{{ redmine_docker_path }}/app/redmine/config/configuration.yml"
+  tags: redmine
 
-- name: put redmine/config/additional_environment.yml
+- name: 追加環境設定ファイルを配置
   template:
     src: additional_environment.yml
     dest: "{{ redmine_docker_path }}/app/redmine/config/additional_environment.yml"
+  tags: redmine
 
-- name: build redmine images
+- name: dbコンテナをビルド
   docker_image:
-    name: "redmine-{{ item }}"
-    path: "{{ redmine_docker_path }}/{{ item }}/"
-  with_items:
-    - db
-    - app
-    - web
+    name: redmine_db
+    source: build
+    build:
+      path: "{{ redmine_docker_path }}/db/"
+      pull: no
+    force_source: yes
+  notify: redmine_docker restart db
+  tags: redmine
 
-- name: build redmine network
+- name: appコンテナをビルド
+  docker_image:
+    name: redmine_app
+    source: build
+    build:
+      path: "{{ redmine_docker_path }}/app/"
+      pull: no
+    force_source: yes
+  notify: redmine_docker restart app
+  tags: redmine
+
+- name: webコンテナをビルド
+  docker_image:
+    name: redmine_web
+    source: build
+    build:
+      path: "{{ redmine_docker_path }}/web/"
+      pull: no
+    force_source: yes
+  notify: redmine_docker restart web
+  tags: redmine
+
+- name: ホストネットワークを作成
   docker_network:
-    name: redmine-network
+    name: redmine
+  notify:
+    - redmine_docker restart db
+    - redmine_docker restart app
+    - redmine_docker restart web
+  tags: redmine
 
-- name: start redmine-db
-  docker_container:
-    name: redmine-db
-    image: redmine-db
-    volumes:
-      - "/opt/redmine/volumes/db:/var/lib/postgresql/data:rw"
-    env:
-      POSTGRES_DB: "{{ redmine_docker_db_database }}"
-      POSTGRES_USER: "{{ redmine_docker_db_username }}"
-      POSTGRES_PASSWORD: "{{ redmine_docker_db_password }}"
+- name: dbコンテナの起動確認
+  shell: docker inspect redmine_db | jq -r .[].State.Status
+  register: result
+  changed_when: result.stdout != "running"
+  notify: redmine_docker restart db
+  tags: redmine
 
-- name: start redmine-app
-  docker_container:
-    name: redmine-app
-    image: redmine-app
-    links:
-      - "redmine-db:db"
-    ports:
-      - "1234:8080"
+- name: appコンテナの起動確認
+  shell: docker inspect redmine_app | jq -r .[].State.Status
+  register: result
+  changed_when: result.stdout != "running"
+  notify: redmine_docker restart app
+  tags: redmine
+
+- name: webコンテナの起動確認
+  shell: docker inspect redmine_web | jq -r .[].State.Status
+  register: result
+  changed_when: result.stdout != "running"
+  notify: redmine_docker restart web
+  tags: redmine

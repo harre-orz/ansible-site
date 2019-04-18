@@ -1,26 +1,25 @@
 ---
+- name: インストール手順の分岐
+  include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
 
-- include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
-
-- name: groupadd docker
+- name: dockerグループを作成
   group:
     name: docker
 
-- name: usermod -a -G docker {{ ansible_ssh_user }}
-  user:
-    name: "{{ ansible_ssh_user }}"
-    groups: docker
-    append: yes
+# - name: dockerグループに{{ ansible_ssh_user }}を追加
+#   user:
+#     name: "{{ ansible_ssh_user }}"
+#     groups: docker
+#     append: yes
 
-- name: start docker
+- name: 自動起動
   service:
     name: docker
     state: started
     enabled: yes
 
-- name: put goss
+- name: テストファイルを配置
   copy:
-    dest: /usr/local/share/goss/docker.yml
     content: |
       service:
         docker:
@@ -33,5 +32,6 @@
         /var/run/docker.sock:
           exists: true
           mode: "0660"
-          owner: "root"
-          group: "docker"
+          owner: root
+          group: docker
+    dest: /usr/local/share/goss/docker.yml

@@ -1,25 +1,27 @@
 ---
-- name: install chrony
-  package:
-    name: chrony
-
-- name: set timezone to 'Asia/Tokyo'
+- name: タイムゾーンをAsia/Tokyo
   timezone:
     name: Asia/Tokyo
+  notify: chrony restart chronyd
 
-- name: backup {{ chrony_conf }}
+- name: インストール
+  package:
+    name: chrony
+  notify: chrony restart chronyd
+
+- name: 設定ファイルをバックアップ
   shell: "cp -af {{ chrony_conf }} {{ chrony_conf}}.org"
   args:
     creates: "{{ chrony_conf }}.org"
 
-- name: remove default ntp servers
+- name: 初期設定されている接続先NTPサーバをコメントアウト
   replace:
     dest: "{{ chrony_conf }}"
     regexp: '^(server\s+.*\.ntp\.org\s+iburst)'
     replace: '#\1'
-  notify: restart chronyd
+  notify: chrony restart chronyd
 
-- name: set ntp servers
+- name: 接続先NTPサーバを設定
   blockinfile:
     path: "{{ chrony_conf }}"
     insertafter: '^[#!]\s?server\s+'
@@ -27,18 +29,17 @@
       {% for ip in ntp_servers %}
       server {{ ip | ipaddr }} iburst
       {% endfor %}
-  notify: restart chronyd
+  notify: chronydを再起動
 
-- name: start chronyd
+- name: 自動起動
   service:
     name: chronyd
     state: started
     enabled: yes
-  notify: restart chronyd
+  notify: chrony restart chronyd
 
-- name: put goss
+- name: テストファイルを配置
   copy:
-    dest: "{{ goss_workdir }}/chrony.yml"
     content: |
       service:
         chronyd:
@@ -62,3 +63,4 @@
           filetype: symlink
           contains:
             - JST-9
+    dest: "{{ goss_workdir }}/chrony.yml"

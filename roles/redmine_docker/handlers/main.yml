@@ -1,1 +1,45 @@
 ---
+- name: redmine_docker restart db
+  docker_container:
+    name: redmine_db
+    image: redmine_db
+    state: started
+    restart: yes
+    recreate: yes
+    networks:
+      - name: redmine
+    networks_cli_compatible: no
+    volumes:
+      - "/opt/redmine/volumes/db:/var/lib/postgresql/data:rw"
+    env:
+      POSTGRES_DB: redmine_production
+      POSTGRES_USER: "{{ redmine_docker_db_username }}"
+      POSTGRES_PASSWORD: "{{ redmine_docker_db_password }}"
+
+- name: redmine_docker restart app
+  docker_container:
+    name: redmine_app
+    image: redmine_app
+    state: started
+    restart: yes
+    recreate: yes
+    networks:
+      - name: redmine
+    networks_cli_compatible: no
+    links:
+      - "redmine_db:db"
+
+- name: redmine_docker restart web
+  docker_container:
+    name: redmine_web
+    image: redmine_web
+    state: started
+    restart: yes
+    recreate: yes
+    networks:
+      - name: redmine
+    networks_cli_compatible: no
+    links:
+      - "redmine_app:app"
+    published_ports:
+      - "{{ redmine_docker_port }}:80"

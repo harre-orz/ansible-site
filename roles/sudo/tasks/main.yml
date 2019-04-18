@@ -1,37 +1,37 @@
 ---
-- include_vars: os_Debian.yml
+- name: Debian固有の変数を取り込む
+  include_vars: os_Debian.yml
   when: ansible_os_family == "Debian"
 
-- name: install sudo
+- name: インストール
   package:
     name: sudo
 
-- name: "usermod -a -G {{ sudo_wheel }} {{ ansible_ssh_user }}"
+- name: 管理者グループに{{ ansible_ssh_user }}ユーザを追加
   user:
     name: "{{ ansible_ssh_user }}"
     groups:
       - "{{ sudo_wheel }}"
     append: yes
 
-- name: set '%wheel ALL=(ALL) ALL'
+- name: 管理者グループにsudo権限を追加
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass | bool == True
+  when: sudo_ask_pass == True
 
-- name: set '%wheel ALL=(ALL)  NOPASSWD ALL'
+- name: 管理者グループにsudo権限を追加(パスワード不要)
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass | bool == False
+  when: sudo_ask_pass == False
 
-- name: put goss
+- name: テストファイルを配置
   copy:
-    dest: "{{ goss_workdir }}/sudo.yml"
     content: |
       user:
         {{ ansible_ssh_user }}:
@@ -51,3 +51,4 @@
       {% else %}
             - "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
       {% endif %}
+    dest: "{{ goss_workdir }}/sudo.yml"

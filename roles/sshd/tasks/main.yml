@@ -1,42 +1,24 @@
 ---
-- name: include vars for Debian
-  include_vars: os_Debian.yml
+- name: Debian固有の変数を取り込む
+  include_vars: "os_{{ ansible_os_family }}.yml"
   when: ansible_os_family == "Debian"
 
-- name: backup {{ sshd_conf }}
+- name: 設定ファイルをバックアップ
   shell: "cp -af {{ sshd_conf }} {{ sshd_conf }}.org"
   args:
     creates: "{{ sshd_conf }}.org"
 
-- name: groupadd sshusers
+- name: sshusersグループを作成
   group:
     name: sshusers
 
-- name: "usermod -a -G sshusers {{ ansible_ssh_user }}"
+- name: "{{ ansible_ssh_user }}にsshusersグループを追加"
   user:
     name: "{{ ansible_ssh_user }}"
     groups: sshusers
     append: yes
 
-- set_fact:
-    sshd_config_params:
-      - { name: AllowGroups, value: sshusers }
-      - { name: PasswordAuthentication, value: "{{ sshd_ask_pass }}" }
-      - { name: ChallengeResponseAuthentication, value: 'no' }
-      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
-      - { name: UsePAM, value: 'yes' }
-      - { name: UseDNS, value: 'no' }
-
-- name: sshd listen port
-  lineinfile:
-    path: "{{ sshd_conf }}"
-    insertafter: "^#Port "
-    regexp: "^Port "
-    line: "Port {{ sshd_port | int }}"
-  when: sshd_port | int != 22
-  notify: restart sshd
-
-- name: sshd address family
+- name: アドレスファミリーを設定
   lineinfile:
     path: "{{ sshd_conf }}"
     insertafter: "^#AddressFamily "
@@ -44,9 +26,9 @@
     line: "AddressFamily {{ sshd_addrspec }}"
   when:
     - sshd_addrspec != "any"
-  notify: restart sshd
+  notify: sshd restart
 
-- name: sshd listen address
+- name: 公開IPアドレスを設定
   lineinfile:
     path: "{{ sshd_conf }}"
     insertafter: "^#ListenAddress "
@@ -55,9 +37,28 @@
   when:
     - sshd_address != "0.0.0.0"
     - sshd_address != "::"
-  notify: restart sshd
+  notify: sshd restart
 
-- name: modify sshd_config
+- name: 公開ポート番号を設定
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#Port "
+    regexp: "^Port "
+    line: "Port {{ sshd_port | int }}"
+  when: sshd_port | int != 22
+  notify: sshd restart
+
+- name: 設定ファイルの変更項目を定義
+  set_fact:
+    sshd_config_params:
+      - { name: AllowGroups, value: sshusers }
+      - { name: PasswordAuthentication, value: "{{ sshd_ask_pass }}" }
+      - { name: ChallengeResponseAuthentication, value: 'no' }
+      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
+      - { name: UsePAM, value: 'yes' }
+      - { name: UseDNS, value: 'no' }
+
+- name: 変更項目に従い設定変更
   lineinfile:
     path: "{{ sshd_conf }}"
     insertafter: "^#{{ item.name }} "
@@ -65,17 +66,17 @@
     line: "{{ item.name }} {{ item.value }}"
     validate: "{{ sshd_executable }} -t -f %s"
   with_items: "{{ sshd_config_params }}"
-  notify: restart sshd
+  notify: sshd restart
 
-- name: start sshd
+- name: 自動起動
   service:
     name: "{{ sshd_service }}"
     state: started
     enabled: yes
+  notify: sshd restart
 
-- name: put goss
+- name: テストファイルを配置
   copy:
-    dest: "{{ goss_workdir }}/sshd.yml"
     content: |
       service:
         sshd:
@@ -117,3 +118,4 @@
       {% for item in sshd_config_params %}
             - "/^{{ item.name }} {{ item.value }}$/"
       {% endfor %}
+    dest: "{{ goss_workdir }}/sshd.yml"

@@ -7,12 +7,17 @@
     ansible_sudo_pass: osboxes.org
 
   roles:
+    - goss
+    - chrony
+    - sshd
+    - sudo
+    - docker
     - redmine_docker
 
   post_tasks:
     - pause:
         seconds: 5
-    - name: run goss
+    - name: 構成テストを実行
       shell: /usr/local/bin/goss -g /usr/local/share/goss/goss.yaml v -f tap
       changed_when: False
       tags: always
