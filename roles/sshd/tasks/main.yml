@@ -2,21 +2,25 @@
 - name: Debian固有の変数を取り込む
   include_vars: "os_{{ ansible_os_family }}.yml"
   when: ansible_os_family == "Debian"
+  tags: [ always ]
 
 - name: 設定ファイルをバックアップ
   shell: "cp -af {{ sshd_conf }} {{ sshd_conf }}.org"
   args:
     creates: "{{ sshd_conf }}.org"
+  tags: [ sshd ]
 
 - name: sshusersグループを作成
   group:
     name: sshusers
+  tags: [ sshd ]
 
 - name: "{{ ansible_ssh_user }}にsshusersグループを追加"
   user:
     name: "{{ ansible_ssh_user }}"
     groups: sshusers
     append: yes
+  tags: [ sshd ]
 
 - name: アドレスファミリーを設定
   lineinfile:
@@ -27,6 +31,7 @@
   when:
     - sshd_addrspec != "any"
   notify: sshd restart
+  tags: [ sshd ]
 
 - name: 公開IPアドレスを設定
   lineinfile:
@@ -38,6 +43,7 @@
     - sshd_address != "0.0.0.0"
     - sshd_address != "::"
   notify: sshd restart
+  tags: [ sshd ]
 
 - name: 公開ポート番号を設定
   lineinfile:
@@ -47,16 +53,18 @@
     line: "Port {{ sshd_port | int }}"
   when: sshd_port | int != 22
   notify: sshd restart
+  tags: [ sshd ]
 
 - name: 設定ファイルの変更項目を定義
   set_fact:
     sshd_config_params:
       - { name: AllowGroups, value: sshusers }
-      - { name: PasswordAuthentication, value: "{{ sshd_ask_pass }}" }
       - { name: ChallengeResponseAuthentication, value: 'no' }
-      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
       - { name: UsePAM, value: 'yes' }
       - { name: UseDNS, value: 'no' }
+      - { name: PasswordAuthentication, value: "{% if sshd_ask_pass == True %}yes{% else %}no{% endif %}" }
+      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
+  tags: [ always ]
 
 - name: 変更項目に従い設定変更
   lineinfile:
@@ -67,6 +75,7 @@
     validate: "{{ sshd_executable }} -t -f %s"
   with_items: "{{ sshd_config_params }}"
   notify: sshd restart
+  tags: [ sshd ]
 
 - name: 自動起動
   service:
@@ -74,6 +83,7 @@
     state: started
     enabled: yes
   notify: sshd restart
+  tags: [ sshd, start ]
 
 - name: テストファイルを配置
   copy:
@@ -119,3 +129,4 @@
             - "/^{{ item.name }} {{ item.value }}$/"
       {% endfor %}
     dest: "{{ goss_workdir }}/sshd.yml"
+  tags: [ sshd, goss ]

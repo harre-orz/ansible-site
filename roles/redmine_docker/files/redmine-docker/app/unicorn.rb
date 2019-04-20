@@ -1,14 +1,11 @@
 worker_processes 2
 
-app_path = "/var/redmine"
-
+app_path = "/var/www"
 listen  File.expand_path('tmp/unicorn.sock', app_path)
 pid File.expand_path('tmp/unicorn.pid', app_path)
-stderr_path File.expand_path('log/unicorn.stderr.log', app_path)
-stdout_path File.expand_path('log/unicorn.stdout.log', app_path)
-
+stdout_path '/dev/stdout'
+stderr_path '/dev/stderr'
 preload_app true
-
 timeout 30
 
 if GC.respond_to?(:copy_on_write_friendly=)

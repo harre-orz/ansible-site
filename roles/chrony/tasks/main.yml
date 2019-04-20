@@ -3,16 +3,19 @@
   timezone:
     name: Asia/Tokyo
   notify: chrony restart chronyd
+  tags: [ chrony ]
 
 - name: インストール
   package:
     name: chrony
   notify: chrony restart chronyd
+  tags: [ chrony ]
 
 - name: 設定ファイルをバックアップ
   shell: "cp -af {{ chrony_conf }} {{ chrony_conf}}.org"
   args:
     creates: "{{ chrony_conf }}.org"
+  tags: [ chrony ]
 
 - name: 初期設定されている接続先NTPサーバをコメントアウト
   replace:
@@ -20,16 +23,18 @@
     regexp: '^(server\s+.*\.ntp\.org\s+iburst)'
     replace: '#\1'
   notify: chrony restart chronyd
+  tags: [ chrony ]
 
 - name: 接続先NTPサーバを設定
   blockinfile:
     path: "{{ chrony_conf }}"
     insertafter: '^[#!]\s?server\s+'
     block: |
-      {% for ip in ntp_servers %}
+      {% for ip in chrony_ntp_servers %}
       server {{ ip | ipaddr }} iburst
       {% endfor %}
-  notify: chronydを再起動
+  notify: chrony restart chronyd
+  tags: [ chrony ]
 
 - name: 自動起動
   service:
@@ -37,6 +42,7 @@
     state: started
     enabled: yes
   notify: chrony restart chronyd
+  tags: [ chrony, start ]
 
 - name: テストファイルを配置
   copy:
@@ -55,7 +61,7 @@
         {{ chrony_conf }}:
           exists: true
           contains:
-      {% for ip in ntp_servers %}
+      {% for ip in chrony_ntp_servers %}
             - "server {{ ip }} iburst"
       {% endfor %}
         /etc/localtime:
@@ -64,3 +70,4 @@
           contains:
             - JST-9
     dest: "{{ goss_workdir }}/chrony.yml"
+  tags: [ chrony, goss ]

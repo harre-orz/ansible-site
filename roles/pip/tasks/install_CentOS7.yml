@@ -1,0 +1,7 @@
+---
+- name: pipをインストール
+  # refer: https://pip.pypa.io/en/latest/installing/
+  shell: curl -Ls https://bootstrap.pypa.io/get-pip.py | python
+  args:
+    creates: /usr/lib/python2.7/site-packages/pip
+  tags: [ pip ]

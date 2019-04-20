@@ -1,5 +1,9 @@
 ---
+# gossを実行するまで少し待つ時間[秒]
+goss_standby_seconds: 3
+
+# gossで成功と判定されるまでのリトライ時間[秒]
+goss_retries_seconds: 10
+
 # goss構成定義ファイルをすべて削除して再構成するか？
-#  yes:
-#  no :
-goss_rebuild_gossfiles: no
+goss_force_rebuild: no

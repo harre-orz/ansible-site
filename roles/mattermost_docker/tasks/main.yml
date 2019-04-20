@@ -1,15 +1,133 @@
 ---
-- name: synchronize dockerhost
+- name: コンテナの停止
+  docker_container:
+    name: "mattermost_{{ item }}"
+    image: "mattermost_{{ item }}"
+    state: stopped
+  with_items:
+    - db
+    - app
+    - web
+  when: mattermost_docker_force_rebuild == True
+  tags: [ mattermost_docker ]
+
+- name: Dockerパッケージの再構築
+  file:
+    path: "{{ mattermost_docker_path }}"
+    state: absent
+  when: mattermost_docker_force_rebuild == True
+  tags: [ mattermost_docker ]
+
+- name: Dockerパッケージを配置
   copy:
-    src: mattermost-docker/
-    dest: "{{ mattermost_docker_path }}"
+    src: "mattermost-docker/{{ item }}/"
+    dest: "{{ mattermost_docker_path }}/{{ item }}"
+    mode: preserve
     force: false
+  with_items:
+    - db
+    - app
+    - web
+  tags: [ mattermost_docker ]
 
-- name: docker image app
-  docker_image:
-    name: mattermost_ap
-    build:
-
-- name: build db container
+- name: dbコンテナをビルド
   docker_image:
     name: mattermost_db
+    source: build
+    build:
+      path: "{{ mattermost_docker_path }}/db/"
+      pull: no
+    force_source: yes
+  notify:
+    - mattermost_docker restart db
+  tags: [ mattermost_docker ]
+
+- name: appコンテナをビルド
+  docker_image:
+    name: mattermost_app
+    source: build
+    build:
+      path: "{{ mattermost_docker_path }}/app/"
+      args:
+        edition: team
+      pull: no
+    force_source: yes
+  notify:
+    - mattermost_docker restart app
+  tags: [ mattermost_docker ]
+
+- name: webコンテナをビルド
+  docker_image:
+    name: mattermost_web
+    source: build
+    build:
+      path: "{{ mattermost_docker_path }}/web/"
+      pull: no
+    force_source: yes
+  notify:
+    - mattermost_docker restart web
+  tags: [ mattermost_docker ]
+
+- name: ホストネットワークを作成
+  docker_network:
+    name: mattermost
+  notify:
+    - mattermost_docker restart db
+    - mattermost_docker restart app
+    - mattermost_docker restart web
+  tags: [ mattermost_docker ]
+
+- name: dbコンテナの起動確認
+  shell: docker inspect mattermost_db
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
+  notify: mattermost_docker restart db
+  tags: [ mattermost_docker, start ]
+
+- name: appコンテナの起動確認
+  shell: docker inspect mattermost_app
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
+  notify: mattermost_docker restart app
+  tags: [ mattermost_docker, start ]
+
+- name: webコンテナの起動確認
+  shell: docker inspect mattermost_web
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
+  notify: mattermost_docker restart web
+  tags: [ mattermost_docker, start ]
+
+- name: httpポート確認
+  shell: docker inspect mattermost_web
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].NetworkSettings.Ports.\"80/tcp\"[0].HostPort') | int != mattermost_docker_http_port
+  notify: mattermost_docker restart web
+  tags: [ mattermost_docker, start ]
+
+- name: httpsポート確認
+  shell: docker inspect mattermost_web
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].NetworkSettings.Ports.\"443/tcp\"[0].HostPort') | int != mattermost_docker_https_port
+  notify: mattermost_docker restart web
+  tags: [ mattermost_docker, start ]
+
+- name: テストファイルの配置
+  copy:
+    content: |
+      command:
+        docker container inspect mattermost_db:
+          exit-status: 0
+        docker container inspect mattermost_app:
+          exit-status: 0
+        docker container inspect mattermost_web:
+          exit-status: 0
+      http:
+        http://localhost:{{ mattermost_docker_http_port }}/:
+          status: 200
+          timeout: 10000
+        # https://localhost:{{ mattermost_docker_https_port }}/:
+        #   status: 200
+        #   timeout: 10000
+    dest: "{{ goss_workdir }}/mattermost_docker.yml"
+  tags: [ mattermost_docker, goss ]

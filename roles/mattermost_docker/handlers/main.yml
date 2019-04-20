@@ -1,0 +1,64 @@
+---
+- name: mattermost_docker restart db
+  docker_container:
+    name: mattermost_db
+    image: mattermost_db
+    state: started
+    restart: yes
+    recreate: yes
+    read_only: yes
+    restart_policy: unless-stopped
+    networks:
+      - name: mattermost
+    networks_cli_compatible: no
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "{{ mattermost_docker_volumes }}/db:/var/lib/postgresql/data:rw"
+    env:
+      POSTGRES_USER: "{{ mattermost_docker_db_username }}"
+      POSTGRES_PASSWORD: "{{ mattermost_docker_db_password }}"
+      POSTGRES_DB: mattermost
+
+- name: mattermost_docker restart app
+  docker_container:
+    name: mattermost_app
+    image: mattermost_app
+    state: started
+    restart: yes
+    recreate: yes
+    restart_policy: unless-stopped
+    networks:
+      - name: mattermost
+    networks_cli_compatible: no
+    links:
+      - "mattermost_db:db"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "{{ mattermost_docker_volumes }}/app/mattermost/config:/mattermost/config:rw"
+      - "{{ mattermost_docker_volumes }}/app/mattermost/data:/mattermost/data:rw"
+      - "{{ mattermost_docker_volumes }}/app/mattermost/logs:/mattermost/logs:rw"
+    env:
+      MM_USERNAME: "{{ mattermost_docker_db_username }}"
+      MM_PASSWORD: "{{ mattermost_docker_db_password }}"
+      MM_DBNAME: mattermost
+
+- name: mattermost_docker restart web
+  docker_container:
+    name: mattermost_web
+    image: mattermost_web
+    state: started
+    read_only: yes
+    restart_policy: unless-stopped
+    networks:
+      - name: mattermost
+    networks_cli_compatible: no
+    links:
+      - "mattermost_app:app"
+    env:
+      MATTERMOST_ENABLE_SSL: 'true'
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "{{ mattermost_docker_volumes }}/web/cert:/cert:ro"
+    published_ports:
+      - "{{ mattermost_docker_http_port }}:80"
+      - "{{ mattermost_docker_https_port }}:443"

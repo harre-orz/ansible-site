@@ -1,0 +1,6 @@
+---
+- name: SELinuxが無効になっているか?
+  shell: "! (type getenforce > /dev/null) | grep -v Disabled"
+  when: selinux_policy == 'disabled'
+  changed_when: False
+  tags: [ always ]

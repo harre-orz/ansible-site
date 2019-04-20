@@ -2,10 +2,12 @@
 - name: Debian固有の変数を取り込む
   include_vars: os_Debian.yml
   when: ansible_os_family == "Debian"
+  tags: [ always ]
 
 - name: インストール
   package:
     name: sudo
+  tags: [ sudo ]
 
 - name: 管理者グループに{{ ansible_ssh_user }}ユーザを追加
   user:
@@ -13,22 +15,43 @@
     groups:
       - "{{ sudo_wheel }}"
     append: yes
+  tags: [ sudo ]
 
-- name: 管理者グループにsudo権限を追加
+- name: 管理者グループにパスワード入力必須なsudo権限を追加
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) ALL"
     validate: "{{ sudo_executable }} -cf %s"
   when: sudo_ask_pass == True
+  tags: [ sudo ]
 
-- name: 管理者グループにsudo権限を追加(パスワード不要)
+- name: 管理者グループにパスワード入力不要なsudo権限を削除
   lineinfile:
     path: /etc/sudoers
-    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
+    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+NOPASSWD:\\s*ALL"
+    line: "#%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+    validate: "{{ sudo_executable }} -cf %s"
+  when: sudo_ask_pass == True
+  tags: [ sudo ]
+
+- name: 管理者グループにパスワード入力不要なsudo権限を追加
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+NOPASSWD:\\s*ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
     validate: "{{ sudo_executable }} -cf %s"
   when: sudo_ask_pass == False
+  tags: [ sudo ]
+
+- name: 管理者グループにパスワード入力必須なsudo権限を削除
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
+    line: "#%{{ sudo_wheel }} ALL=(ALL) ALL"
+    validate: "{{ sudo_executable }} -cf %s"
+  when: sudo_ask_pass == False
+  tags: [ sudo ]
 
 - name: テストファイルを配置
   copy:
@@ -46,9 +69,12 @@
           exists: true
           mode: "0440"
           contains:
-      {% if sudo_ask_pass | bool %}
+      {% if sudo_ask_pass %}
             - "%{{ sudo_wheel }} ALL=(ALL) ALL"
+            - "#%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
       {% else %}
             - "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+            - "#%{{ sudo_wheel }} ALL=(ALL) ALL"
       {% endif %}
     dest: "{{ goss_workdir }}/sudo.yml"
+  tags: [ sudo, goss ]

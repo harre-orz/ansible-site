@@ -1,41 +1,44 @@
 ---
-- name: dockerパッケージを配置
-  copy:
+- name: 依存変数の確認
+  assert:
+    that: sudo_ask_pass == False
+  tags: [ always ]
+
+- name: コンテナの停止
+  docker_container:
+    name: "redmine_{{ item }}"
+    image: "redmine_{{ item }}"
+    state: stopped
+  with_items:
+    - db
+    - app
+    - web
+  when: redmine_docker_force_rebuild == True
+  tags: [ redmine_docker ]
+
+- name: Dockerパッケージの削除
+  file:
+    path: "{{ redmine_docker_path }}"
+    state: absent
+  when: redmine_docker_force_rebuild == True
+  tags: [ redmine_docker ]
+
+- name: Dockerパッケージを配置
+  synchronize:
     src: redmine-docker/
     dest: "{{ redmine_docker_path }}"
-  tags: redmine
+    rsync_opts:
+      - "--exclude=.??*"
+  tags: [ redmine_docker ]
 
-- name: githubからredmineリポジトリをpull
-  git:
-    repo: https://github.com/redmine/redmine.git
-    dest: "{{ redmine_docker_path }}/app/redmine"
-    version: "{{ redmine_docker_branch }}"
-  tags: redmine
-
-- name: データベース設定ファイルを配置
-  copy:
-    dest: "{{ redmine_docker_path }}/app/redmine/config/database.yml"
-    content: |
-      production:
-        adapter: postgresql
-        database: redmine_production
-        host: db
-        username: {{ redmine_docker_db_username }}
-        password: "{{ redmine_docker_db_password }}"
-        encoding: utf8
-  tags: redmine
-
-- name: グローバル設定ファイルを配置
+- name: 設定ファイルを配置
   template:
-    src: configuration.yml.j2
-    dest: "{{ redmine_docker_path }}/app/redmine/config/configuration.yml"
-  tags: redmine
-
-- name: 追加環境設定ファイルを配置
-  template:
-    src: additional_environment.yml
-    dest: "{{ redmine_docker_path }}/app/redmine/config/additional_environment.yml"
-  tags: redmine
+    src: "{{ item }}.j2"
+    dest: "{{ redmine_docker_path }}/app/redmine/config/{{ item }}"
+  with_items:
+    - configuration.yml
+    - database.yml
+  tags: [ redmine_docker ]
 
 - name: dbコンテナをビルド
   docker_image:
@@ -46,7 +49,7 @@
       pull: no
     force_source: yes
   notify: redmine_docker restart db
-  tags: redmine
+  tags: [ redmine_docker ]
 
 - name: appコンテナをビルド
   docker_image:
@@ -57,7 +60,7 @@
       pull: no
     force_source: yes
   notify: redmine_docker restart app
-  tags: redmine
+  tags: [ redmine_docker ]
 
 - name: webコンテナをビルド
   docker_image:
@@ -68,7 +71,7 @@
       pull: no
     force_source: yes
   notify: redmine_docker restart web
-  tags: redmine
+  tags: [ redmine_docker ]
 
 - name: ホストネットワークを作成
   docker_network:
@@ -77,25 +80,66 @@
     - redmine_docker restart db
     - redmine_docker restart app
     - redmine_docker restart web
-  tags: redmine
+  tags: [ redmine_docker ]
 
 - name: dbコンテナの起動確認
-  shell: docker inspect redmine_db | jq -r .[].State.Status
+  shell: docker inspect redmine_db
   register: result
-  changed_when: result.stdout != "running"
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
   notify: redmine_docker restart db
-  tags: redmine
+  tags: [ redmine_docker, start ]
 
 - name: appコンテナの起動確認
-  shell: docker inspect redmine_app | jq -r .[].State.Status
+  shell: docker inspect redmine_app
   register: result
-  changed_when: result.stdout != "running"
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
   notify: redmine_docker restart app
-  tags: redmine
+  tags: [ redmine_docker, start ]
 
 - name: webコンテナの起動確認
-  shell: docker inspect redmine_web | jq -r .[].State.Status
+  shell: docker inspect redmine_web
   register: result
-  changed_when: result.stdout != "running"
+  changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
   notify: redmine_docker restart web
-  tags: redmine
+  tags: [ redmine_docker, start ]
+
+- name: httpポートの確認
+  shell: docker inspect redmine_web
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].NetworkSettings.Ports.\"80/tcp\"[0].HostPort') | int != redmine_docker_http_port
+  notify: redmine_docker restart web
+  tags: [ redmine_docker, start ]
+
+- name: httpsポートの確認
+  shell: docker inspect redmine_web
+  register: result
+  changed_when: result.stdout | from_json | json_query('[0].NetworkSettings.Ports.\"443/tcp\"[0].HostPort') | int != redmine_docker_https_port
+  notify: redmine_docker restart web
+  tags: [ redmine_docker, start ]
+
+- name: テストファイルを配置
+  copy:
+    content: |
+      command:
+        docker container inspect redmine_db:
+          exit-status: 0
+        docker container inspect redmine_app:
+          exit-status: 0
+        docker container inspect redmine_web:
+          exit-status: 0
+        ps -e -o uid,gid,command:
+          exit-status: 0
+          stdout:
+            - "  999   999 postgres"
+            - "   33    33 unicorn master -c unicorn.rb -E production -p 8080"
+            - "    0     0 nginx: master process nginx -g daemon off;"
+            - "  101   101 nginx: worker process"
+      http:
+        http://localhost:{{ redmine_docker_http_port }}/:
+          status: 200
+          timeout: 10000
+      #https://localhost:{{ redmine_docker_https_port }}/:
+      #    status: 200
+      #    timeout: 10000
+    dest: "{{ goss_workdir }}/redmine_docker.yml"
+  tags: [ redmine_docker, goss ]

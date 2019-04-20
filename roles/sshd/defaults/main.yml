@@ -13,11 +13,10 @@ sshd_addrspec: any
 #  '::'
 sshd_address: '::'
 
-# パスワード認証を許可するか？
-#  'yes': 許可する
-#  'no' : 拒否する(公開鍵認証のみ)
-# 注意: シングルクォートで囲わないと True/False と解釈されてしまう
-sshd_ask_pass: 'yes'
+# パスワード認証を許可するか?
+#  'yes' : 許可する
+#  'no': 拒否する(公開鍵認証のみ)
+sshd_ask_pass: no
 
 # rootログインを許可するか？
 #  'yes'               : 許可する(危険)

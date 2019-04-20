@@ -1,2 +1,5 @@
 ---
 mattermost_docker_path: /root/mattermost-docker
+mattermost_docker_volumes: /opt/mattermost/volumes
+mattermost_docker_db_username: mmuser
+mattermost_docker_db_password: mmuser_password

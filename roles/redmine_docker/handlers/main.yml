@@ -6,15 +6,18 @@
     state: started
     restart: yes
     recreate: yes
+    #read_only: yes
+    restart_policy: unless-stopped
     networks:
       - name: redmine
     networks_cli_compatible: no
     volumes:
-      - "/opt/redmine/volumes/db:/var/lib/postgresql/data:rw"
+      - "/etc/localtime:/etc/localtime:ro"
+      - "{{ redmine_docker_volumes }}/db:/var/lib/postgresql/data:rw"
     env:
-      POSTGRES_DB: redmine_production
       POSTGRES_USER: "{{ redmine_docker_db_username }}"
       POSTGRES_PASSWORD: "{{ redmine_docker_db_password }}"
+      POSTGRES_DB: redmine_production
 
 - name: redmine_docker restart app
   docker_container:
@@ -23,9 +26,13 @@
     state: started
     restart: yes
     recreate: yes
+    #read_only: yes
+    restart_policy: unless-stopped
     networks:
       - name: redmine
     networks_cli_compatible: no
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     links:
       - "redmine_db:db"
 
@@ -36,10 +43,15 @@
     state: started
     restart: yes
     recreate: yes
+    #read_only: yes
+    restart_policy: unless-stopped
     networks:
       - name: redmine
     networks_cli_compatible: no
     links:
       - "redmine_app:app"
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
     published_ports:
-      - "{{ redmine_docker_port }}:80"
+      - "{{ redmine_docker_http_port }}:80"
+      - "{{ redmine_docker_https_port }}:443"

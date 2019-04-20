@@ -1,0 +1,4 @@
+---
+- name: インストール処理の分岐
+  include: "install_{{ ansible_distribution }}{{ ansible_distribution_major_version }}.yml"
+  tags: [ always ]

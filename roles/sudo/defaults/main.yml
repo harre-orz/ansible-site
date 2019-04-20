@@ -1,6 +1,6 @@
 ---
-
-# sudo のときパスワード入力するか？
-#  yes:
-#  no:
-sudo_ask_pass: 'yes'
+# sudo のときパスワード入力させるか？
+#  yes: パスワード入力させる
+#   no: パスワード入力させない
+# 注: ansible-synchonize を使うときは no にする必要がある
+sudo_ask_pass: no

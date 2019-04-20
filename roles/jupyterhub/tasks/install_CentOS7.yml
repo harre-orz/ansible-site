@@ -1,19 +1,24 @@
 ---
+- name: OS固有の変数の取り込み
+  include_vars: "os_CentOS7.yml"
+  tags: [ always ]
 
-- include_vars: "os_CentOS7.yml"
-
-- name: install epel-release for CentOS7
+- name: epelをインストール
   yum:
     name: epel-release
+  tags: [ jupyterhub ]
 
-- name: install python3 and npm for CentOS7
+- name: 必要なパッケージをインストール
   yum:
     name:
       - python36
       - npm
       - git
+  tags: [ jupyterhub ]
 
-- name: install python3-pip for CentOS7
-  shell: curl -kL https://bootstrap.pypa.io/get-pip.py | python3
+- name: pip3をインストール
+  shell: curl -Ls https://bootstrap.pypa.io/get-pip.py | python3
   args:
-    creates: "{{ python3_pip_executable }}"
+    creates: "{{ jupyterhub_pip3_executable }}"
+    warn: False
+  tags: [ jupyterhub ]

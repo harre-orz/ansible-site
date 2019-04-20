@@ -1,2 +1,5 @@
 ---
 redmine_docker_path: /root/redmine-docker
+redmine_docker_volumes: /opt/redmine/volumes
+redmine_docker_db_username: redmine
+redmine_docker_db_password: redmine

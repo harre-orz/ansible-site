@@ -1,12 +1,13 @@
 FROM ruby:2.5.5
 
-COPY redmine /var/redmine
-RUN rm -rf $/var/redmine/.??*
-COPY Gemfile.local /var/redmine
-COPY unicorn.rb /var/redmine
+COPY --chown=www-data:www-data redmine /var/www/
+COPY --chown=www-data:www-data Gemfile.local /var/www/Gemfile.local
+COPY --chown=www-data:www-data unicorn.rb /var/www/unicorn.rb
 
-WORKDIR /var/redmine
+WORKDIR /var/www
 RUN bundle install --without development test
+
+USER www-data
 
 EXPOSE 8080
 CMD bundle exec rake generate_secret_token && \

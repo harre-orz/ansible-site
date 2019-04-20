@@ -1,5 +1,10 @@
 ---
-redmine_docker_port: 1234
-redmine_docker_branch: 3.4.10
-redmine_docker_db_username: redmine
-redmine_docker_db_password: redmine
+
+# 外部に公開するhttpのポート番号
+redmine_docker_http_port: 1234
+
+# 外部に公開するhttpsのポート番号
+redmine_docker_https_port: 1235
+
+# redmineのDockerコンテナをすべて停止して再構築するか？
+redmine_docker_force_rebuild: no

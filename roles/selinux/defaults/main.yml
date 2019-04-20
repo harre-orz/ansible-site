@@ -1,0 +1,6 @@
+---
+# SELinux
+#   enforcing:
+#  permissive:
+#    disabled:
+selinux_policy: disabled

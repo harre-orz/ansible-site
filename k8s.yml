@@ -1,6 +1,0 @@
-- hosts: k8s
-  user: root
-  become: yes
-  roles:
-    - common
-    - k8s-base

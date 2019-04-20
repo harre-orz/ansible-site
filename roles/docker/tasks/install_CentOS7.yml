@@ -6,6 +6,7 @@
       - docker
       - docker-common
       - docker-engine
+  tags: [ docker ]
 
 - name: 必要なパッケージをインストール
   yum:
@@ -13,13 +14,20 @@
       - yum-utils
       - device-mapper-persistent-data
       - lvm2
-      - jq
+  tags: [ docker ]
 
 - name: docker-ceリポジトリを追加
   get_url:
     url: https://download.docker.com/linux/centos/docker-ce.repo
     dest: /etc/yum.repos.d/docker-ce.repo
+  tags: [ docker ]
 
 - name: インストール
   yum:
     name: docker-ce
+  tags: [ docker ]
+
+- name: docker-pyをインストール
+  pip:
+    name: docker-py
+  tags: [ docker ]

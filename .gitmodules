@@ -4,3 +4,6 @@
 [submodule "roles/redmine_docker/files/redmine/redmine/redmine"]
 	path = roles/redmine_docker/files/redmine/redmine/redmine
 	url = https://github.com/redmine/redmine.git
+[submodule "roles/redmine_docker/files/redmine-docker/app/redmine"]
+	path = roles/redmine_docker/files/redmine-docker/app/redmine
+	url = https://github.com/redmine/redmine.git

@@ -1,2 +1,3 @@
-pthon3_pip_executalbe: /usr/local/bin/pip
+---
 jupyterhub_executable: /usr/local/bin/jupyterhub
+jupyterhub_pip3_executable: /usr/local/bin/pip

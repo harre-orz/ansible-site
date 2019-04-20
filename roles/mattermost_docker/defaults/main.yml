@@ -1,1 +1,6 @@
 ---
+mattermost_docker_http_port: 1236
+mattermost_docker_https_port: 1237
+
+# 再構築
+mattermost_docker_force_rebuild: no
