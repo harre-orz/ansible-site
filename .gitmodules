@@ -7,3 +7,6 @@
 [submodule "roles/redmine_docker/files/redmine-docker/app/redmine"]
 	path = roles/redmine_docker/files/redmine-docker/app/redmine
 	url = https://github.com/redmine/redmine.git
+[submodule "roles/codimd_docker/files/codimd-docker/app/codimd"]
+	path = roles/codimd_docker/files/codimd-docker/app/codimd
+	url = https://github.com/hackmdio/codimd.git

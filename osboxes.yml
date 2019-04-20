@@ -9,10 +9,12 @@
     #goss_force_rebuild: yes
     #redmine_docker_force_rebuild: yes
     #mattermost_docker_force_rebuild: yes
+    #codimd_docker_force_rebuild: yes
   roles:
     - chrony
     - sshd
     - redmine_docker
     - mattermost_docker
+    - codimd_docker
   post_tasks:
     - include: post_tasks/run_tests.yml

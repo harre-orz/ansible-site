@@ -1,0 +1,77 @@
+---
+- name: コンテナの停止
+  docker_container:
+    name: "codimd_{{ item }}"
+    image: "codimd_{{ item }}"
+    state: stopped
+  with_items:
+    - database
+    - app
+  when: codimd_docker_force_rebuild == True
+  tags: [ codimd_docker ]
+
+- name: Dockerパッケージの再構築
+  file:
+    path: "{{ codimd_docker_path }}"
+    state: absent
+  when: codimd_docker_force_rebuild == True
+  tags: [ codimd_docker ]
+
+- name: Dockerパッケージの配置
+  synchronize:
+    src: "codimd-docker/"
+    dest: "{{ codimd_docker_path }}/"
+    rsync_opts:
+      - "--exclude=.??*"
+  tags: [ codimd_docker ]
+
+- name: 設定ファイルを配置
+  template:
+    src: config.json.j2
+    dest: "{{ codimd_docker_path }}/app/config.json"
+  tags: [ codimd_docker ]
+
+- name: databaseコンテナをビルド
+  docker_image:
+    name: codimd_database
+    source: build
+    build:
+      path: "{{ codimd_docker_path }}/database/"
+      pull: no
+    force_source: yes
+  notify:
+    - codimd_docker restart database
+  tags: [ codimd_docker ]
+
+- name: appコンテナのビルド
+  docker_image:
+    name: codimd_app
+    source: build
+    build:
+      path: "{{ codimd_docker_path }}/app/"
+      pull: no
+    force_source: yes
+  notify: codimd_docker restart app
+  tags: [ codimd_docker ]
+
+# - name: ホストネットワークを作成
+#   docker_network:
+#     name: codimd
+#   notify:
+#     - codimd_docker restart database
+#     - codimd_docker restart app
+#   tags: [ codimd_docker ]
+#
+# - name: databaseコンテナの起動確認
+#   shell: docker inspect codimd_database
+#   register: result
+#   changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
+#   notify: codimd_docker restart database
+#   tags: [ codimd_docker, start ]
+#
+# - name: appコンテナの起動確認
+#   shell: docker inspect codimd_app
+#   register: result
+#   changed_when: result.stdout | from_json | json_query('[0].State.Status') != 'running'
+#   notify: codimd_docker restart app
+#   tags: [ codimd_docker, start ]

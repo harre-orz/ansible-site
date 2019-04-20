@@ -12,7 +12,6 @@
       - name: redmine
     networks_cli_compatible: no
     volumes:
-      - "/etc/localtime:/etc/localtime:ro"
       - "{{ redmine_docker_volumes }}/db:/var/lib/postgresql/data:rw"
     env:
       POSTGRES_USER: "{{ redmine_docker_db_username }}"
@@ -31,8 +30,6 @@
     networks:
       - name: redmine
     networks_cli_compatible: no
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
     links:
       - "redmine_db:db"
 
@@ -50,8 +47,6 @@
     networks_cli_compatible: no
     links:
       - "redmine_app:app"
-    volumes:
-      - "/etc/localtime:/etc/localtime:ro"
     published_ports:
       - "{{ redmine_docker_http_port }}:80"
       - "{{ redmine_docker_https_port }}:443"

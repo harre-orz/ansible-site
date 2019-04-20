@@ -1,7 +1,10 @@
 ---
 - name: 依存変数の確認
   assert:
-    that: sudo_ask_pass == False
+    that:
+      - redmine_docker_db_username is defined
+      - redmine_docker_db_password is defined
+      - sudo_ask_pass == False
   tags: [ always ]
 
 - name: コンテナの停止

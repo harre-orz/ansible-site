@@ -1,0 +1,5 @@
+---
+codimd_docker_path: /root/codimd-docker
+codimd_docker_volumes: /opt/codimd/volumes
+codimd_docker_db_username: codimd
+codimd_docker_db_password: codimdpass

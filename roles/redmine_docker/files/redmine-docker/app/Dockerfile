@@ -1,5 +1,13 @@
 FROM ruby:2.5.5
 
+ENV TZ Asia/Tokyo
+RUN apt-get update \
+ && apt-get install -y tzdata \
+ && rm -rf /var/lib/apt/lists/* \
+ && ln -sf /usr/share/zoneinfo/${TZ} /etc/localtime \
+ && echo ${TZ} > /etc/timezone \
+ && dpkg-reconfigure -f noninteractive tzdata
+
 COPY --chown=www-data:www-data redmine /var/www/
 COPY --chown=www-data:www-data Gemfile.local /var/www/Gemfile.local
 COPY --chown=www-data:www-data unicorn.rb /var/www/unicorn.rb
