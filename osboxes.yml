@@ -6,15 +6,18 @@
     ansible_ssh_pass: osboxes.org
     ansible_sudo_pass: osboxes.org
     sshd_ask_pass: yes
-    #goss_force_rebuild: yes
+    sshd_port: 2222
+    sshd_listen:
+      - ipv4: 127.0.0.1
+      - ipv4: 192.168.56.101
+        port: 22
+      - ipv6: '::1'
+    goss_force_rebuild: yes
     #redmine_docker_force_rebuild: yes
     #mattermost_docker_force_rebuild: yes
     #codimd_docker_force_rebuild: yes
   roles:
     - chrony
     - sshd
-    - redmine_docker
-    - mattermost_docker
-    - codimd_docker
   post_tasks:
     - include: post_tasks/run_tests.yml

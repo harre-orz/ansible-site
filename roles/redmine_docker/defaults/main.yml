@@ -1,5 +1,4 @@
 ---
-
 # 外部に公開するhttpのポート番号
 redmine_docker_http_port: 1234
 

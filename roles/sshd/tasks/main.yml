@@ -22,36 +22,37 @@
     append: yes
   tags: [ sshd ]
 
-- name: アドレスファミリーを設定
-  lineinfile:
-    path: "{{ sshd_conf }}"
-    insertafter: "^#AddressFamily "
-    regexp: "^AddressFamily "
-    line: "AddressFamily {{ sshd_addrspec }}"
-  when:
-    - sshd_addrspec != "any"
-  notify: sshd restart
-  tags: [ sshd ]
-
-- name: 公開IPアドレスを設定
-  lineinfile:
-    path: "{{ sshd_conf }}"
-    insertafter: "^#ListenAddress "
-    regexp: "^ListenAddress "
-    line: "ListenAddress {{ sshd_address | ipaddr }}"
-  when:
-    - sshd_address != "0.0.0.0"
-    - sshd_address != "::"
-  notify: sshd restart
-  tags: [ sshd ]
-
 - name: 公開ポート番号を設定
   lineinfile:
     path: "{{ sshd_conf }}"
     insertafter: "^#Port "
     regexp: "^Port "
     line: "Port {{ sshd_port | int }}"
-  when: sshd_port | int != 22
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: アドレスファミリーを設定
+  lineinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#AddressFamily "
+    regexp: "^AddressFamily "
+    line: "AddressFamily {{ sshd_addrspec }}"
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: 待ち受けアドレス/ポートを設定
+  blockinfile:
+    path: "{{ sshd_conf }}"
+    insertafter: "^#ListenAddress "
+    block: |
+      {% for sa in sshd_listen %}
+      {%   if sa.ipv4 is defined and ipv6 is not defined %}ListenAddress {{  sa.ipv4  }}{% if sa.port is defined %}:{{ sa.port | int }}{% endif %}
+      {% elif sa.ipv6 is defined and ipv4 is not defined %}ListenAddress [{{ sa.ipv6 }}]{% if sa.port is defined %}:{{ sa.port | int }}{% endif %}
+      {% else %}ListenAddress x.x.x.x
+      {% endif %}
+
+      {% endfor %}
+    validate: "{{ sshd_executable }} -t -f %s"
   notify: sshd restart
   tags: [ sshd ]
 
@@ -93,24 +94,33 @@
           running: true
           enabled: true
       port:
+      {% if sshd_listen | length > 0 %}
+      {% for sa in sshd_listen %}
+      {% if sa.ipv4 is defined and sa.ipv6 is not defined %}
+        tcp:{{ sa.port | default(sshd_port) }}:
+          listening: true
+          ip:
+            - "{{ sa.ipv4 | ipv4 }}"
+      {% endif %}
+      {% if sa.ipv6 is defined and sa.ipv4 is not defined %}
+        tcp6:{{ sa.port | default(sshd_port) }}:
+          listening: true
+          ip:
+            - "{{ sa.ipv6 | ipv6 }}"
+      {% endif %}
+      {% endfor %}
+      {% else %}
       {% if sshd_addrspec != "inet6" %}
         tcp:{{ sshd_port | int }}:
           listening: true
           ip:
-      {% if sshd_address == "::" %}
             - "0.0.0.0"
-      {% else %}
-            - "{{ sshd_address | ipv4 }}"
-      {% endif %}
       {% endif %}
       {% if sshd_addrspec != "inet" %}
-      tcp6:{{ sshd_port | int }}:
-        listening: true
-        ip:
-      {% if sshd_address == "0.0.0.0" %}
-          - "::"
-      {% else %}
-          - "{{ sshd_address | ipv6 }}"
+        tcp6:{{ sshd_port | int }}:
+          listening: true
+          ip:
+            - "::"
       {% endif %}
       {% endif %}
       user:

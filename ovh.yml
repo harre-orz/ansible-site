@@ -2,7 +2,7 @@
 - hosts: ovh
   become: yes
   vars:
-    - sshd_ask_pass: 'no'
+    - sshd_ask_pass: no
   roles:
     - chrony
     - sshd

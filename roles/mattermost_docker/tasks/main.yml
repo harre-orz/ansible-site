@@ -30,6 +30,12 @@
     - web
   tags: [ mattermost_docker ]
 
+- name: 設定の配置
+  lineinfile:
+    path: "{{ mattermost_docker_path }}/db/Dockerfile"
+    regexp: "^ENV DEFAULT_TIMEZONE "
+    line: "ENV DEFAULT_TIMEZONE Asia/Tokyo"
+
 - name: dbコンテナをビルド
   docker_image:
     name: mattermost_db
