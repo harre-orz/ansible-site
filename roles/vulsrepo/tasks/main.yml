@@ -1,0 +1,42 @@
+---
+- name: vulsrepoをpull
+  become: yes
+  become_user: "{{ vuls_user }}"
+  git:
+    repo: https://github.com/usiusi360/vulsrepo.git
+    dest: "~/vulsrepo"
+    version: v0.2.0
+  notify: vulsrepo restart
+
+- name: vulsrepo-config.yml
+  become: yes
+  become_user: "{{ vuls_user }}"
+  copy:
+    content: |
+      [Server]
+      rootPath = "/home/{{ vuls_user }}/vulsrepo"
+      resultsPath = "/home/{{ vuls_user }}/results"
+      serverPort = "5111"
+    dest: "~/vulsrepo/server/vulserepo-config.toml"
+  notify: vulsrepo restart
+
+- name: systemd
+  become: yes
+  copy:
+    content: |
+      [Unit]
+      Description=vulsrepo daemon
+      Documentation=https://github.com/usiusi360/vulsrepo
+
+      [Service]
+      ExecStart = /home/{{ vuls_user }}/vulsrepo/server/vulsrepo-server
+      ExecRestart = /bin/kill -WINCH ${MAINPID} ; /home/{{ vuls_user }}/vulsrepo/server/vulsrepo-server
+      ExecStop = /bin/kill -WINCH ${MAINPID}
+      Restart = no
+      Type = simple
+      User = {{ vuls_user }}
+
+      [Install]
+      WantedBy = multi-user.target
+    dest: /lib/systemd/system/vulsrepo.service
+  notify: vulsrepo restart

@@ -1,23 +1,29 @@
 ---
 - hosts: gitlab
   user: osboxes
-  become: yes
+  become: no
   vars:
     ansible_ssh_pass: osboxes.org
     ansible_sudo_pass: osboxes.org
     sshd_ask_pass: yes
     sshd_port: 2222
     sshd_listen:
-      - ipv4: 127.0.0.1
-      - ipv4: 192.168.56.101
-        port: 22
-      - ipv6: '::1'
+    - ipv4: 127.0.0.1
+    - ipv4: 192.168.56.101
+      port: 22
+    - ipv6: '::1'
+    sshd_use_internal_sftp: yes
     goss_force_rebuild: yes
     #redmine_docker_force_rebuild: yes
     #mattermost_docker_force_rebuild: yes
     #codimd_docker_force_rebuild: yes
   roles:
-    - chrony
-    - sshd
+#  - selinux
+#  - goss
+#  - chrony
+#  - sudo
+#  - sshd
+  - vuls
+  - vulsrepo
   post_tasks:
-    - include: post_tasks/run_tests.yml
+  - include: post_tasks/run_tests.yml

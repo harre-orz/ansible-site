@@ -5,6 +5,7 @@
   tags: [ always ]
 
 - name: 構成テストを実行
+  become: yes
   shell: "/usr/local/bin/goss -g /usr/local/share/goss/goss.yaml v -f tap -r {{ goss_retries_seconds | default(0) }}s"
   register: result
   changed_when: False

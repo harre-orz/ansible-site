@@ -1,4 +1,4 @@
 ---
 dependencies:
-  - role: goss
-  - role: sudo
+- role: goss
+- role: sudo

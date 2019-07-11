@@ -1,0 +1,5 @@
+---
+sshd_config_file: /etc/ssh/sshd_config
+sshd_executable: /usr/sbin/sshd
+sshd_service: sshd
+sshd_sftp_server_executable: /usr/lib/openssh/sftp-server

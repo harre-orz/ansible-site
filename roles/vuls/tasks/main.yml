@@ -1,0 +1,78 @@
+---
+- name: リポジトリ情報の定義
+  set_fact:
+    vuls_github_repos:
+      - { name: go-cve-dictionary, version: HEAD, parent: kotakanbe }
+      - { name: goval-dictionary,  version: HEAD, parent: kotakanbe }
+      - { name: gost,              version: HEAD, parent: knqyf263}
+      - { name: go-exploitdb,      version: HEAD, parent: mozqnet }
+      - { name: vuls,              version: HEAD, parent: future-architect }
+  tags: [ always ]
+
+- name: 依存パッケージのインストール
+  become: yes
+  package:
+    name: [ sqlite, git, gcc, make, curl ]
+
+- name: "~{{ vuls_user }}/.bashrc にGo言語PATHを設定"
+  become: yes
+  become_user: "{{ vuls_user }}"
+  blockinfile:
+    path: "~/.bashrc"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - GOENV"
+    block: |
+      export GOROOT={{ golang_goroot }}
+      export GOPATH=$HOME/go
+      export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+
+- name: ログディレクトリを作成
+  become: yes
+  file:
+    path: "/var/log/{{ item }}"
+    state: directory
+    owner: "{{ vuls_user }}"
+    mode: '0700'
+  with_items:
+  - vuls
+  - gost
+  - go-exploitdb
+
+- name: リポジトリディレクトリを作成
+  become: yes
+  become_user: "{{ vuls_user }}"
+  file:
+    path: "~/go/src/github.com/{{ item.parent }}"
+    state: directory
+  with_items: "{{ vuls_github_repos }}"
+
+- name: vulsパッケージをgithubからpull
+  become: yes
+  become_user: "{{ vuls_user }}"
+  git:
+    repo: "https://github.com/{{ item.parent }}/{{ item.name }}.git"
+    dest: "~/go/src/github.com/{{ item.parent }}/{{ item.name }}"
+    version: "{{ item.version }}"
+    update: no
+  with_items: "{{ vuls_github_repos }}"
+
+- name: vulsパッケージをビルド
+  become: yes
+  become_user: "{{ vuls_user }}"
+  shell: "bash -lc 'make install'"
+  args:
+    chdir: "~/go/src/github.com/{{ item.parent }}/{{ item.name }}"
+    creates: "~/go/bin/{{ item.name }}"
+  with_items: "{{ vuls_github_repos }}"
+
+# - name: vulsの脆弱性DBを取得（時間がかかる）
+#   become: yes
+#   become_user: "{{ vuls_user }}"
+#   shell: "bash -lc '{{ item }}'"
+#   args:
+#     chdir: "~"
+#   with_items:
+#   - "for i in $(seq 2002 $(date +%Y)); do go-cve-dictionary fetchnvd -years $i; done"
+#   - "for i in $(seq 1998 $(date +%Y)); do go-cve-dictionary fetchjvn -years $i; done"
+#   - "goval-dictionary fetch-redhat 7"
+#   - "gost fetch redhat --after 2016-01-01"
+#   - "go-exploitdb fetch exploitdb"

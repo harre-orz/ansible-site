@@ -1,6 +1,6 @@
 ---
-- name: SELinuxが無効になっているか?
-  shell: getenforce | grep Disabled
-  when: selinux_policy == 'disabled'
+- name: SELinuxの状態確認
+  shell: "/usr/sbin/getenforce | grep -i '^{{ selinux_policy }}$'"
+  when: ansible_os_family == 'RedHat'
   changed_when: False
   tags: [ always ]

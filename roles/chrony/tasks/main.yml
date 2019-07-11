@@ -1,51 +1,54 @@
 ---
 - name: タイムゾーンをAsia/Tokyo
+  become: yes
   timezone:
     name: Asia/Tokyo
   notify: chrony restart chronyd
-  tags: [ chrony ]
 
 - name: インストール
+  become: yes
   package:
     name: chrony
   notify: chrony restart chronyd
-  tags: [ chrony ]
 
 - name: 設定ファイルをバックアップ
-  shell: "cp -af {{ chrony_conf }} {{ chrony_conf}}.org"
+  become: yes
+  shell: "cp -af {{ chrony_conf_file }} {{ chrony_conf_file }}.orig"
   args:
-    creates: "{{ chrony_conf }}.org"
-  tags: [ chrony ]
+    creates: "{{ chrony_conf_file }}.orig"
 
-- name: 初期設定されている接続先NTPサーバをコメントアウト
-  replace:
-    dest: "{{ chrony_conf }}"
-    regexp: '^(server\s+.*\.ntp\.org\s+iburst)'
-    replace: '#\1'
+- name: 初期設定されている接続先NTPサーバを削除
+  become: yes
+  lineinfile:
+    path: "{{ chrony_conf_file }}"
+    regexp: '^#?(server\s+.*\.ntp\.org\s+iburst)'
+    state: absent
   notify: chrony restart chronyd
-  tags: [ chrony ]
 
 - name: 接続先NTPサーバを設定
+  become: yes
   blockinfile:
-    path: "{{ chrony_conf }}"
+    path: "{{ chrony_conf_file }}"
     insertafter: '^[#!]\s?server\s+'
     block: |
       {% for ip in chrony_ntp_servers %}
       server {{ ip | ipaddr }} iburst
       {% endfor %}
   notify: chrony restart chronyd
-  tags: [ chrony ]
 
 - name: 自動起動
+  become: yes
   service:
     name: chronyd
     state: started
     enabled: yes
   notify: chrony restart chronyd
-  tags: [ chrony, start ]
 
 - name: テストファイルを配置
+  become: yes
   copy:
+    owner: root
+    mode: '0600'
     content: |
       service:
         chronyd:
@@ -58,7 +61,7 @@
             - " sources online"
             - "!0 sources online"
       file:
-        {{ chrony_conf }}:
+        {{ chrony_conf_file }}:
           exists: true
           contains:
       {% for ip in chrony_ntp_servers %}
@@ -69,5 +72,5 @@
           filetype: symlink
           contains:
             - JST-9
-    dest: "{{ goss_workdir }}/chrony.yml"
-  tags: [ chrony, goss ]
+    dest: "{{ goss_dir }}/chrony.yml"
+  tags: [ goss ]

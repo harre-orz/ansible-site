@@ -1,0 +1,5 @@
+---
+- name: install golang
+  become: yes
+  package:
+    name: golang

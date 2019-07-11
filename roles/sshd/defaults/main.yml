@@ -1,28 +1,56 @@
 ---
-# サービスポート番号
+## サービスポート番号
 sshd_port: 22
 
-# アドレスファミリー
-#  'inet'   : IPv4のみ許可する
-#  'inet6'  : IPv6のみ許可する
-#  'any'    : すべてのアドレスで許可する
+## アドレスファミリー
+## - inet   : IPv4のみ許可する
+## - inet6  : IPv6のみ許可する
+## - any    : すべてのアドレスで許可する
 sshd_addrspec: any
 
-# 受け付けるアドレス
-# 複数のアドレスおよびポートを指定できる
-# ポートは省略することが可能で、その場合は{{ sshd_port }} が使用される
-#   例: [ { ipv4: '0.0.0.0' }, { ipv6: '::', port: 2222 } ]
-sshd_listen: []
+## 受け付けるアドレス
+## 複数のアドレスおよびポートを指定できる
+## ポートは省略することが可能で、その場合は sshd_port が使用される
+#sshd_listen:
+#- ipv4: 0.0.0.0
+#- ipv6: ::1
+#  port: 12345
 
-# パスワード認証を許可するか?
-#  'yes' : 許可する
-#  'no': 拒否する(公開鍵認証のみ)
-sshd_ask_pass: no
+## パスワード認証を許可するか？
+## - yes : 許可する
+## - no  : 拒否する(公開鍵認証のみ)
+sshd_ask_pass: yes
 
-# rootログインを許可するか？
-#  'yes'               : 許可する(危険)
-#  'no'                : 拒否する
-#  without-password    : パスワード認証を拒否する
-#  forced-commands-only: 直接アクセスを拒否する
-# 注意: シングルクォートで囲わないと True/False と解釈されてしまう
-sshd_permit_root_login: 'no'
+## rootログインを許可するか？
+## - 'yes'                : 許可する
+## - 'no'                 : 拒否する
+## - without-password     : パスワード認証を拒否する
+## - forced-commands-only : 直接アクセスを拒否する
+## 注意: シングルクォートで囲わないと True/False と解釈されてしまう
+sshd_permit_root_login: 'yes'
+
+## ssh agent の forwarding(引き継ぎ)を許可するか？
+sshd_agent_forwarding: yes
+
+## ssh ポートフォワーディング（sshトンネル）を許可するか？
+sshd_tcp_forwarding: yes
+
+## X11のセキュアなトンネルを許可するか？
+sshd_x11_forwarding: yes
+
+## internal-sftp を使用するか？
+## 過去の経緯で sftp-server がデフォルトとなっているが、internal-sftp が便利なので推奨されている
+sshd_use_internal_sftp: no
+
+## sftpのみアカウントの設定
+## - users    : sftpのみ許可するUNIXユーザ名を指定する（省略可能。ただし users, groups いずれかでで最低１つは指定する必要がある）
+## - groups   : sftpのみ許可するUNIXグループ名を指定する（省略可能。ただし users, groups いずれかでで最低１つは指定する必要がある）
+## - ask_pass : パスワード認証を許可するか？（省略した場合は sshd_ask_pass が使われる）
+## - umask    : マスクを指定する（省略可能）
+## - chroot   : chroot先のフォルダを指定する（省略可能）
+#sshd_sftp_only_accounts:
+#  users: [ 'testuser' ]
+#  groups: [ 'testgroup' ]
+#  ask_pass: yes
+#  umask: '0600'
+#  chroot: '~'

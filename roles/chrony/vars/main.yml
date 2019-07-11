@@ -1,2 +1,2 @@
 ---
-chrony_conf: /etc/chrony.conf
+chrony_conf_file: /etc/chrony.conf

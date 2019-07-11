@@ -1,0 +1,194 @@
+---
+- name: OS固有の変数を取り込む
+  include_vars: "os_{{ ansible_os_family }}.yml"
+  tags: [ always ]
+
+- name: 設定ファイルの変更項目を定義
+  set_fact:
+    sshd_config_params:
+      - { name: AllowGroups, value: sshusers }
+      - { name: ChallengeResponseAuthentication, value: 'no' }
+      - { name: UsePAM, value: 'yes' }
+      - { name: UseDNS, value: 'no' }
+      - { name: PasswordAuthentication, value: "{% if sshd_ask_pass %}yes{% else %}no{% endif %}" }
+      - { name: PermitRootLogin, value: "{{ sshd_permit_root_login }}" }
+      - { name: AllowAgentForwarding, value: "{% if sshd_agent_forwarding %}yes{% else %}no{% endif %}" }
+      - { name: AllowTcpForwarding, value: "{% if sshd_tcp_forwarding %}yes{% else %}no{% endif %}" }
+      - { name: X11Forwarding, value: "{% if sshd_x11_forwarding %}yes{% else %}no{% endif %}" }
+      - { name: GSSAPIAuthentication, value: 'no' }
+      - { name: KerberosAuthentication, value: 'no' }
+  tags: [ always ]
+
+- name: 設定ファイルをバックアップ
+  shell: "cp -af {{ sshd_config_file }} {{ sshd_config_file }}.orig"
+  args:
+    creates: "{{ sshd_config_file }}.orig"
+  tags: [ sshd ]
+
+- name: sshusersグループを作成
+  group:
+    name: sshusers
+  tags: [ sshd ]
+
+- name: "{{ ansible_ssh_user }}にsshusersグループを追加"
+  user:
+    name: "{{ ansible_ssh_user }}"
+    groups: sshusers
+    append: yes
+  tags: [ sshd ]
+
+- name: 公開ポート番号を設定
+  lineinfile:
+    path: "{{ sshd_config_file }}"
+    regexp: "^#?Port "
+    line: "Port {{ sshd_port | int }}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: アドレスファミリーを設定
+  lineinfile:
+    path: "{{ sshd_config_file }}"
+    regexp: "^#?AddressFamily "
+    line: "AddressFamily {{ sshd_addrspec }}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: 待ち受けアドレス/ポートを設定
+  blockinfile:
+    path: "{{ sshd_config_file }}"
+    insertafter: "^#ListenAddress "
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - ListenAddress"
+    block: |
+      {% for sa in sshd_listen %}
+      {%   if sa.ipv4 is defined and sa.ipv6 is not defined %}ListenAddress {{  sa.ipv4 | ipv4 }}{% if sa.port is defined %}:{{ sa.port | int }}{% endif %}
+      {% elif sa.ipv6 is defined and sa.ipv4 is not defined %}ListenAddress [{{ sa.ipv6 | ipv6 }}]{% if sa.port is defined %}:{{ sa.port | int }}{% endif %}
+      {% else %}ListenAddress x.x.x.x
+      {% endif %}
+
+      {% endfor %}
+    validate: "{{ sshd_executable }} -t -f %s"
+  when: sshd_listen is defined
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: 待ち受けアドレスの/ポートのデフォルト設定の削除
+  lineinfile:
+    path: "{{ sshd_config_file }}"
+    regexp: "^#ListenAddress"
+    state: absent
+    validate: "{{ sshd_executable }} -t -f %s"
+  when: sshd_listen is defined
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: 変更項目に従った操作
+  lineinfile:
+    path: "{{ sshd_config_file }}"
+    regexp: "^#?{{ item.name }} "
+    line: "{{ item.name }} {{ item.value }}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  with_items: "{{ sshd_config_params }}"
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: sftpプロセスの設定（internal-sftpを使用するか？）
+  lineinfile:
+    path: "{{ sshd_config_file }}"
+    regexp: '^#?Subsystem\s+sftp'
+    line: "Subsystem sftp {% if sshd_use_internal_sftp %}internal-sftp{% else %}{{ sshd_sftp_server_executable }}{% endif %}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: sftp専用アカウントの設定
+  blockinfile:
+    path: "{{ sshd_config_file }}"
+    marker: "# {mark} ANSIBLE MANAGED BLOCK - Match sftp-only"
+    block: |
+      Match{% if sshd_sftp_only_accounts.users is defined and sshd_sftp_only_accounts.users | length > 0 %} User {{ sshd_sftp_only_accounts.users | join(',') }}{% endif %}
+      {% if sshd_sftp_only_accounts.groups is defined and sshd_sftp_only_accounts.groups | length > 0 %} Group {{ sshd_sftp_only_accounts.groups | join(',') }}{% endif %}
+
+      {% if sshd_sftp_only_accounts.ask_pass is defined %}
+        PasswordAuthentication {% if sshd_sftp_only_accounts.ask_pass %}yes{% else %}no{% endif %}
+      {% endif %}
+        X11Forwarding no
+        AllowTcpForwarding no
+        ForceCommand internal-sftp{% if sshd_sftp_only_accounts.umask is defined %} -u {{ sshd_sftp_only_accounts.umask }}
+      {% endif %}
+      {% if sshd_sftp_only_accounts.chroot is defined %}
+        ChrootDirectory '{{ sshd_sftp_only_accounts.chroot }}'
+      {% endif %}
+    validate: "{{ sshd_executable }} -t -f %s"
+  when: sshd_sftp_only_accounts is defined
+  notify: sshd restart
+  tags: [ sshd ]
+
+- name: 自動起動
+  service:
+    name: "{{ sshd_service }}"
+    state: started
+    enabled: yes
+  notify: sshd restart
+  tags: [ sshd, start ]
+
+- name: テストファイルを配置
+  copy:
+    content: |
+      service:
+        sshd:
+          running: true
+          enabled: true
+      port:
+      {% if sshd_listen | length > 0 %}
+      {% for sa in sshd_listen %}
+      {% if sa.ipv4 is defined and sa.ipv6 is not defined %}
+        tcp:{{ sa.port | default(sshd_port) }}:
+          listening: true
+          ip:
+            - "{{ sa.ipv4 | ipv4 }}"
+      {% endif %}
+      {% if sa.ipv6 is defined and sa.ipv4 is not defined %}
+        tcp6:{{ sa.port | default(sshd_port) }}:
+          listening: true
+          ip:
+            - "{{ sa.ipv6 | ipv6 }}"
+      {% endif %}
+      {% endfor %}
+      {% else %}
+      {% if sshd_addrspec != "inet6" %}
+        tcp:{{ sshd_port | int }}:
+          listening: true
+          ip:
+            - "0.0.0.0"
+      {% endif %}
+      {% if sshd_addrspec != "inet" %}
+        tcp6:{{ sshd_port | int }}:
+          listening: true
+          ip:
+            - "::"
+      {% endif %}
+      {% endif %}
+      user:
+        {{ ansible_ssh_user }}:
+          exists: true
+          groups:
+            - "sshusers"
+      group:
+        sshusers:
+          exists: true
+      file:
+        {{ sshd_config_file }}:
+          exists: true
+          contains:
+      {% for item in sshd_config_params %}
+            - "/^{{ item.name }} {{ item.value }}$/"
+      {% endfor %}
+      {% if sshd_use_internal_sftp %}
+            - "/^Subsystem sftp internal-sftp$/"
+      {% else %}
+            - "/^Subsystem sftp {{ sshd_sftp_server_executable }}$/"
+      {% endif %}
+    dest: "{{ goss_dir }}/sshd.yml"
+  tags: [ sshd, goss ]

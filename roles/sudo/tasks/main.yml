@@ -5,62 +5,65 @@
   tags: [ always ]
 
 - name: インストール
+  become: yes
   package:
     name: sudo
-  tags: [ sudo ]
 
 - name: 管理者グループに{{ ansible_ssh_user }}ユーザを追加
+  become: yes
   user:
     name: "{{ ansible_ssh_user }}"
     groups:
       - "{{ sudo_wheel }}"
     append: yes
-  tags: [ sudo ]
 
 - name: 管理者グループにパスワード入力必須なsudo権限を追加
+  become: yes
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass == True
-  tags: [ sudo ]
+  when: sudo_ask_pass
 
 - name: 管理者グループにパスワード入力不要なsudo権限を削除
+  become: yes
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+NOPASSWD:\\s*ALL"
     line: "#%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass == True
-  tags: [ sudo ]
+  when: sudo_ask_pass
 
 - name: 管理者グループにパスワード入力不要なsudo権限を追加
+  become: yes
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+NOPASSWD:\\s*ALL"
     line: "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass == False
-  tags: [ sudo ]
+  when: ! sudo_ask_pass
 
 - name: 管理者グループにパスワード入力必須なsudo権限を削除
+  become: yes
   lineinfile:
     path: /etc/sudoers
     regexp: "^#?\\s*%{{ sudo_wheel }}\\s+ALL=\\(ALL\\)\\s+ALL"
     line: "#%{{ sudo_wheel }} ALL=(ALL) ALL"
     validate: "{{ sudo_executable }} -cf %s"
-  when: sudo_ask_pass == False
-  tags: [ sudo ]
+  when: ! sudo_ask_pass
 
 - name: テストファイルを配置
+  become: yes
   copy:
+    owner: root
+    mode: '0600'
     content: |
       user:
         {{ ansible_ssh_user }}:
           exists: true
           groups:
-            - "{{ sudo_wheel }}"
+          - "{{ sudo_wheel }}"
       group:
         {{ sudo_wheel }}:
           exists: true
@@ -70,11 +73,11 @@
           mode: "0440"
           contains:
       {% if sudo_ask_pass %}
-            - "%{{ sudo_wheel }} ALL=(ALL) ALL"
-            - "#%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+          - "%{{ sudo_wheel }} ALL=(ALL) ALL"
+          - "#%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
       {% else %}
-            - "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
-            - "#%{{ sudo_wheel }} ALL=(ALL) ALL"
+          - "%{{ sudo_wheel }} ALL=(ALL) NOPASSWD: ALL"
+          - "#%{{ sudo_wheel }} ALL=(ALL) ALL"
       {% endif %}
-    dest: "{{ goss_workdir }}/sudo.yml"
-  tags: [ sudo, goss ]
+    dest: "{{ goss_dir }}/sudo.yml"
+  tags: [ goss ]
