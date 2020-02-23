@@ -1,0 +1,98 @@
+---
+- name: gitlab-runner
+  hosts: vps671490
+  tasks:
+    - debug:
+        var: ansible_fqdn
+    - name: install require packges
+      become: true
+      pacman:
+        name:
+          - gcc
+          - make
+          - autoconf
+          - automake
+          - pkgconf
+#    - name: build lxd
+#      makepkg:
+#        name: lxd
+    - name: idmap
+      become: true
+      lineinfile:
+        path: /etc/lxc/default.conf
+        regex: "^{{ item }}$"
+        line: "{{ item }}"
+        create: yes
+      with_items:
+        - 'lxc.idmap = u 0 100000 65536'
+        - 'lxc.idmap = g 0 100000 65536'
+    - name: /etc/subuid
+      become: true
+      lineinfile:
+        path: "{{ item }}"
+        regex: 'root:100000:65536'
+        line: 'root:100000:65536'
+        create: yes
+      with_items:
+        - /etc/subuid
+        - /etc/subgid
+    - name: start lxd
+      become: true
+      systemd:
+        name: lxd
+        state: started
+        enabled: yes
+#    - name: init lxd
+#      become: yes
+#      shell: lxd init
+    - name: install gitlab-runner
+      become: true
+      package:
+        name: gitlab-runner
+        state: present
+    - name: usermod
+      become: true
+      user:
+        name: gitlab-runner
+        groups: lxd
+        append: yes
+    - name: config.yml
+      become: true
+      copy:
+        content: |
+          concurrent = 1
+          check_interval = 0
+
+          [session_server]
+            session_timeout = 1800
+
+          [[runners]]
+            name = "{{ ansible_fqdn }}"
+            url = "{{ gitlab_runner_url }}"
+            token = "{{ gitlab_runner_token }}"
+            executor = "custom"
+            builds_dir = "/var/lib/gitlab-runner"
+            cache_dir = "/tmp"
+            environment = [ "GIT_SSL_NO_VERIFY=true" ]
+            [runners.custom_build_dir]
+              [runners.cache]
+              [runners.cache.s3]
+              [runners.cache.gcs]
+            [runners.custom]
+              prepare_exec = "/opt/lxd-executor/prepare.sh"
+              run_exec = "/opt/lxd-executor/run.sh"
+              cleanup_exec = "/opt/lxd-executor/cleanup.sh"
+        dest: /etc/gitlab-runner/config.toml
+      notify: restart gitlab-runner
+    - name: lxd-executor
+      become: true
+      copy:
+        src: lxd-executor/
+        dest: /opt/lxd-executor
+        mode: '0755'
+  handlers:
+    - name: restart gitlab-runner
+      become: true
+      service:
+        name: gitlab-runner
+        state: restarted
