@@ -1,0 +1,3 @@
+---
+- name: ovh apply netplan
+  command: netplan apply

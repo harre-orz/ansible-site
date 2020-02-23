@@ -1,0 +1,10 @@
+network:
+    version: 2
+    ethernets:
+        eth0:
+            dhcp6: false
+            match:
+              name: eth0
+            addresses:
+              - "{{ ovh_ipv6_address }}/64"
+            gateway6: "{{ ovh_ipv6_gateway }}"

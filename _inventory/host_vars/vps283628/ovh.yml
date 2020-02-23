@@ -1,0 +1,4 @@
+---
+ovh_network_type: netplan
+ovh_ipv6_address: '2607:5300:201:3100::1a4c'
+ovh_ipv6_gateway: '2607:5300:201:3100::1'

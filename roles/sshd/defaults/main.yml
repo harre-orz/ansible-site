@@ -24,7 +24,7 @@ sshd_keepalive_count_max: 3
 # ポートフォワーディングを許可するか
 sshd_tcp_forwarding: no
 
-# X11フォワーディングするか
+# X11フォワーディングを許可するか
 sshd_x11_forwarding: no
 
 # internal-sftp を使用するか

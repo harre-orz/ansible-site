@@ -1,0 +1,3 @@
+---
+- include: netplan.yml
+  when: ovh_network_type == 'netplan'
