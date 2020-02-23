@@ -1,6 +1,6 @@
 galaxy_info:
   author: Haruhiko Uchida
-  description: vuls
+  description: prometheus-node
   license: MIT
   min_ansible_version: 2.4
   platforms:
@@ -8,7 +8,7 @@ galaxy_info:
       versions:
         - 7
     - name: Debian
-      version:
+      versions:
         - buster
   galaxy_tags: []
 dependencies: []

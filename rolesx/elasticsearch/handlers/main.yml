@@ -1,0 +1,12 @@
+---
+- name: elasticsearch reload
+  become: true
+  service:
+    name: elasticsearch
+    state: reloaded
+
+- name: elasticsearch restart
+  become: true
+  service:
+    name: elasticsearch
+    state: restarted

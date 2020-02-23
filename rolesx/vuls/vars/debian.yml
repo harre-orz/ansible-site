@@ -1,0 +1,3 @@
+---
+vuls_dependent_packages:
+  - cron

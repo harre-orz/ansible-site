@@ -1,0 +1,49 @@
+stages:
+  - centos7
+  - debian10
+
+centos7:
+  stage: centos7
+  variables:
+    LXC_IMAGE: images:centos/7
+  tags:
+    - lxc
+  before_script:
+    - sudo yum install -y epel-release
+    - sudo yum install -y python-pip
+    - python --version
+    - sudo pip install ansible ansible-lint netaddr
+    - ansible --version
+  script:
+    - cd tests
+    - ansible-lint -v main.yml
+    - ansible-galaxy -v -r requirements.yml -p roles install
+    - ansible-playbook -v --diff main.yml
+    - cd /usr/local/share/goss
+    - sudo /usr/local/bin/goss v -f tap
+  after_script:
+    - sudo cat /etc/ssh/sshd_config
+    - sudo diff -u /etc/ssh/sshd_config.orig /etc/ssh/sshd_config
+
+debian10:
+  stage: debian10
+  variables:
+    LXC_IMAGE: images:debian/buster
+  tags:
+    - lxc
+  before_script:
+    - sudo apt-get update
+    - sudo apt-get install -y python-pip
+    - python --version
+    - sudo pip install ansible ansible-lint netaddr
+    - ansible --version
+  script:
+    - cd tests
+    - ansible-lint -v main.yml
+    - ansible-galaxy -v -r requirements.yml -p roles install
+    - ansible-playbook -v --diff main.yml
+    - cd /usr/local/share/goss
+    - sudo /usr/local/bin/goss v -f tap
+  after_script:
+    - sudo cat /etc/ssh/sshd_config
+    - sudo diff -u /etc/ssh/sshd_config.orig /etc/ssh/sshd_config

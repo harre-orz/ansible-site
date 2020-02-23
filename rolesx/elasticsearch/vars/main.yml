@@ -1,2 +1,2 @@
 ---
-elasticsearch_conf: /etc/elasticsearch/elasticsearch.yml
+elasticsearch_config_file: /etc/elasticsearch/elasticsearch.yml

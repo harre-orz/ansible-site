@@ -1,0 +1,11 @@
+---
+- hosts: localhost
+  vars:
+    goss_always_rebuild: true
+  roles:
+    - goss
+    - kibana
+  post_tasks:
+    - include: "roles/goss/post_tasks/main.yml"
+      when: goss_dir is defined
+      tags: [ goss ]

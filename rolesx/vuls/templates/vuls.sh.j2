@@ -1,0 +1,19 @@
+#!/bin/sh
+{{ ansible_managed | comment }}
+
+cd "$(dirname $0)"
+
+if [ "$1" == 'all' ]; then
+    GO_CVE_NVD="-years $(seq -s' ' 2002 $(date +%Y))"
+    GO_CVE_JVN="-years $(seq -s' ' 1998 $(date +%Y))"
+fi
+
+go-cve-dictionary fetchnvd{% if ansible_env.http_proxy is defined %} -http-proxy={{ ansible_env.http_proxy }}{% endif %} ${GO_CVE_NVD:-'-latest'}
+go-cve-dictionary fetchjvn{% if ansible_env.http_proxy is defined %} -http-proxy={{ ansible_env.http_proxy }}{% endif %} ${GO_CVE_JVN:-'-latest'}
+goval-dictionary fetch-redhat{% if ansible_env.http_proxy is defined %} -http-proxy={{ ansible_env.http_proxy }}{% endif %} {{ vuls_goval_redhat_versions | join(' ') }}
+goval-dictionary fetch-debian{% if ansible_env.http_proxy is defined %} -http-proxy={{ ansible_env.http_proxy }}{% endif %} {{ vuls_goval_debian_versions | join(' ') }}
+
+vuls scan -ssh-config
+{% if vuls_email is defined and vuls_email.enable %}
+vuls report -to-email -format-one-email -diff -lang ja
+{% endif %}

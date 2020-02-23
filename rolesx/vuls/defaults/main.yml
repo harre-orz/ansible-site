@@ -1,0 +1,40 @@
+---
+vuls_version: 0.9.0
+vuls_go_cve_dictionary_version: 0.3.1
+vuls_goval_dictionary_version: 0.1.2
+
+# Whether openssh_keypair type
+#vuls_key_type: rsa
+#vuls_key_type: ecdsa
+vuls_key_type: ed25519
+
+vuls_remotes: []
+# vuls_remotes:
+#   - name: remote host     # default={{ self.host }}
+#     host: 192.168.0.1     # require
+#     port: 22              # default=22
+#     user: vuls            # default=vuls
+#     group: vuls           # default=vuls
+#     groups: [vulsusers]   # default=[]
+#     ansible_user: deploy  # default={{ ansible_user_id }}
+
+vuls_email:
+  enable: no
+# vuls_email:
+#   enable: yes
+#   host: example.com
+#   port: 587
+#   user: example
+#   password: test
+#   from: vuls@example.com
+#   to: [vuls@example.com]
+#   cc: [vuls@example.com]
+#   subjectPrefix: 'vuls'
+
+vuls_slack:
+  enable: true
+#   url:
+#   channel:
+#   user:
+#   iconEmoji:
+#   notifyUsers: []

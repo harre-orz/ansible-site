@@ -1,0 +1,14 @@
+---
+- hosts: localhost
+  vars:
+    goss_always_rebuild: true
+    elasticsearch_cluster_name: test
+    elasticsearch_mater_node: yes
+    elasticsearch_data_node: yes
+  roles:
+    - goss
+    - elasticsearch
+  post_tasks:
+    - include: "roles/goss/post_tasks/main.yml"
+      when: goss_dir is defined
+      tags: [ goss ]

@@ -1,0 +1,22 @@
+---
+
+# Cluster
+elasticsearch_cluster_name:
+elasticsearch_inital_master_nodes: [localhost]
+elasticsearch_cross_cluster: no
+
+# Node
+elasticsearch_master_node: yes
+elasticsearch_voting_only_node: no
+elasticsearch_data_node: yes
+elasticsearch_ingest_node: no
+
+# Network
+elasticsearch_http_listen: 192.168.224.131
+elasticsearch_http_port: 9200
+elasticsearch_tcp_listen: localhost
+elasticsearch_tcp_port: 9300
+
+# Path
+elasticsearch_data_path: /var/lib/elasticsearch
+elasticsearch_logs_path: /var/log/elasticsearch

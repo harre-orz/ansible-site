@@ -1,0 +1,33 @@
+---
+- hosts: localhost
+  vars:
+    goss_always_rebuild: true
+  roles:
+    - goss
+    - vuls
+  post_tasks:
+    - include: 'roles/goss/post_tasks/main.yml'
+      when: goss_dir is defined
+
+- hosts: localhost
+  vars:
+    goss_always_rebuild: true
+    vuls_remotes:
+      - name: test01
+        host: localhost
+        user: test01
+        group: test01
+    vuls_email:
+      enable: true
+      host: smtp.gmail.com
+      port: 587
+      user: harre.orz@gmail.com
+      password: harupixiUchida1193871
+      from: harre.orz@gmail.com
+      to: [harre.orz@gmail.com]
+  roles:
+    - goss
+    - vuls
+  post_tasks:
+    - include: 'roles/goss/post_tasks/main.yml'
+      when: goss_dir is defined

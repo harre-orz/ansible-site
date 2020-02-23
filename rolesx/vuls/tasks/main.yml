@@ -1,78 +1,177 @@
 ---
-- name: リポジトリ情報の定義
-  set_fact:
-    vuls_github_repos:
-      - { name: go-cve-dictionary, version: HEAD, parent: kotakanbe }
-      - { name: goval-dictionary,  version: HEAD, parent: kotakanbe }
-      - { name: gost,              version: HEAD, parent: knqyf263}
-      - { name: go-exploitdb,      version: HEAD, parent: mozqnet }
-      - { name: vuls,              version: HEAD, parent: future-architect }
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-- name: 依存パッケージのインストール
-  become: yes
+- name: set fact the repositories
+  set_fact:
+    _vuls_download_params:
+      - name: go-cve-dictionary
+        file: "go-cve-dictionary_{{ vuls_go_cve_dictionary_version }}_linux_amd64.tar.gz"
+        url: "https://github.com/kotakanbe/go-cve-dictionary/releases/download/v{{ vuls_go_cve_dictionary_version }}"
+      - name: goval-dictionary
+        file: "goval-dictionary_{{ vuls_goval_dictionary_version }}_linux_amd64.tar.gz"
+        url: "https://github.com/kotakanbe/goval-dictionary/releases/download/v{{ vuls_goval_dictionary_version }}"
+      - name: vuls
+        file: "vuls_{{ vuls_version }}_linux_amd64.tar.gz"
+        url: "https://github.com/future-architect/vuls/releases/download/v{{ vuls_version }}"
+
+- name: install the dependent packages
+  become: true
   package:
-    name: [ sqlite, git, gcc, make, curl ]
+    name: "{{ vuls_dependent_packages }}"
 
-- name: "~{{ vuls_user }}/.bashrc にGo言語PATHを設定"
-  become: yes
-  become_user: "{{ vuls_user }}"
-  blockinfile:
-    path: "~/.bashrc"
-    marker: "# {mark} ANSIBLE MANAGED BLOCK - GOENV"
-    block: |
-      export GOROOT={{ golang_goroot }}
-      export GOPATH=$HOME/go
-      export PATH=$PATH:$GOROOT/bin:$GOPATH/bin
+- name: download in local
+  delegate_to: localhost
+  get_url:
+    url: "{{ item.url }}/{{ item.file }}"
+    dest: "/tmp/{{ item.file }}"
+  with_items: "{{ _vuls_download_params }}"
 
-- name: ログディレクトリを作成
-  become: yes
+- name: unpack in local
+  delegate_to: localhost
+  unarchive:
+    src: "/tmp/{{ item.file }}"
+    dest: /tmp/
+    creates: "/tmp/{{ item.name }}"
+  with_items: "{{ _vuls_download_params }}"
+
+- name: install
+  become: true
+  copy:
+    src: "/tmp/{{ item.name }}"
+    dest: "/usr/local/bin/{{ item.name }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items: "{{ _vuls_download_params }}"
+
+- name: create vuls group
+  become: true
+  group:
+    name: vuls
+
+- name: create vuls user
+  become: true
+  user:
+    name: vuls
+    group: vuls
+    shell: /bin/sh
+    home: "{{ vuls_home }}"
+    create_home: true
+
+- name: mkdir /var/log/vuls
+  become: true
   file:
-    path: "/var/log/{{ item }}"
+    path: /var/log/vuls
     state: directory
-    owner: "{{ vuls_user }}"
-    mode: '0700'
-  with_items:
-  - vuls
-  - gost
-  - go-exploitdb
+    owner: vuls
+    group: vuls
+    mode: 0770
 
-- name: リポジトリディレクトリを作成
-  become: yes
-  become_user: "{{ vuls_user }}"
+- name: mkdir ~/.ssh directory
+  become: true
   file:
-    path: "~/go/src/github.com/{{ item.parent }}"
+    path: "{{ vuls_home }}/.ssh"
     state: directory
-  with_items: "{{ vuls_github_repos }}"
+    owner: vuls
+    group: vuls
+    mode: 0700
 
-- name: vulsパッケージをgithubからpull
-  become: yes
-  become_user: "{{ vuls_user }}"
-  git:
-    repo: "https://github.com/{{ item.parent }}/{{ item.name }}.git"
-    dest: "~/go/src/github.com/{{ item.parent }}/{{ item.name }}"
-    version: "{{ item.version }}"
-    update: no
-  with_items: "{{ vuls_github_repos }}"
+- name: create openssh_keypair
+  become: true
+  openssh_keypair:
+    path: "{{ vuls_home }}/.ssh/id_{{ vuls_key_type }}"
+    type: "{{ vuls_key_type }}"
+    owner: vuls
+    group: vuls
+  register: _id
 
-- name: vulsパッケージをビルド
-  become: yes
-  become_user: "{{ vuls_user }}"
-  shell: "bash -lc 'make install'"
-  args:
-    chdir: "~/go/src/github.com/{{ item.parent }}/{{ item.name }}"
-    creates: "~/go/bin/{{ item.name }}"
-  with_items: "{{ vuls_github_repos }}"
+- name: create ssh_config file
+  become: true
+  copy:
+    content: |
+      StrictHostKeyChecking no
+    dest: "{{ vuls_home }}/.ssh/config"
+    owner: vuls
+    group: vuls
+    mode: 0600
 
-# - name: vulsの脆弱性DBを取得（時間がかかる）
-#   become: yes
-#   become_user: "{{ vuls_user }}"
-#   shell: "bash -lc '{{ item }}'"
-#   args:
-#     chdir: "~"
-#   with_items:
-#   - "for i in $(seq 2002 $(date +%Y)); do go-cve-dictionary fetchnvd -years $i; done"
-#   - "for i in $(seq 1998 $(date +%Y)); do go-cve-dictionary fetchjvn -years $i; done"
-#   - "goval-dictionary fetch-redhat 7"
-#   - "gost fetch redhat --after 2016-01-01"
-#   - "go-exploitdb fetch exploitdb"
+- name: create vuls remote group to scan host
+  delegate_to: "{{ item.host }}"
+  remote_user: "{{ item.ansible_user | default(ansible_user_id) }}"
+  become: true
+  group:
+    name: "{{ item.group | default('vuls') }}"
+  with_items: "{{ vuls_remotes }}"
+
+- name: create vuls remote user to scan host
+  delegate_to: "{{ item.host }}"
+  remote_user: "{{ item.ansible_user | default(ansible_user_id) }}"
+  become: true
+  user:
+    name: "{{ item.user | default('vuls') }}"
+    group: "{{ item.group | default('vuls') }}"
+    groups: "{{ item.groups | default([]) }}"
+    append: true
+  with_items: "{{ vuls_remotes }}"
+
+- name: set authorized keys to scan host
+  delegate_to: "{{ item.host }}"
+  remote_user: "{{ item.ansible_user | default(ansible_user_id) }}"
+  become: true
+  authorized_key:
+    user: "{{ item.user | default('vuls') }}"
+    key: "{{ _id.public_key }}"
+  with_items: "{{ vuls_remotes }}"
+
+- name: config.toml
+  become: true
+  template:
+    src: config.toml.j2
+    dest: "{{ vuls_home }}/config.toml"
+    owner: vuls
+    group: vuls
+    mode: 0600
+    validate: '/usr/local/bin/vuls configtest -config %s'
+
+- name: put the script
+  become: true
+  template:
+    src: vuls.sh.j2
+    dest: "{{ vuls_home }}/vuls.sh"
+    owner: vuls
+    group: vuls
+    mode: 0700
+
+- name: cron
+  become: true
+  cron:
+    name: vuls.sh
+    user: vuls
+    job: "{{ vuls_home }}/vuls.sh"
+    hour: '8,12'
+    minute: '45'
+
+- name: get sha256 in config.toml
+  become: true
+  stat:
+    path: "{{ vuls_home }}/config.toml"
+    checksum_algorithm: sha256
+  register: _vuls_config_toml_sha256
+  tags: [ goss ]
+
+- name: put goss
+  become: true
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/vuls.yml"
+    owner: root
+    group: root
+    mode: 0600
+  when: goss_dir is defined
+  tags: [ goss ]

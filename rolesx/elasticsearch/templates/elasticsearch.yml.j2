@@ -1,0 +1,99 @@
+{{ ansible_managed | comment }}
+# ======================== Elasticsearch Configuration =========================
+#
+# NOTE: Elasticsearch comes with reasonable defaults for most settings.
+#       Before you set out to tweak and tune the configuration, make sure you
+#       understand what are you trying to accomplish and the consequences.
+#
+# The primary way of configuring a node is via this file. This template lists
+# the most important settings you may want to configure for a production cluster.
+#
+# Please consult the documentation for further information on configuration options:
+# https://www.elastic.co/guide/en/elasticsearch/reference/index.html
+#
+# ---------------------------------- Cluster -----------------------------------
+#
+{% if elasticsearch_cluster_name %}
+cluster.name: "{{ elasticsearch_cluster_name }}"
+{% else %}
+{{ "elasticsearch_cluster_name"/0 }}
+{% endif %}
+#
+# ------------------------------------ Node ------------------------------------
+#
+node.name: "{{ elasticsearch_node_name | default(ansible_hostname) }}"
+{% if elasticsearch_master_node %}
+node.master: true
+{% else %}
+node.master: false
+{% endif %}
+{% if elasticsearch_voting_only_node %}
+node.voting_only: true
+{% else %}
+node.voting_only: false
+{% endif %}
+{% if elasticsearch_data_node %}
+node.data: true
+{% else %}
+node.data: false
+{% endif %}
+{% if elasticsearch_ingest_node %}
+node.ingest: true
+{% else %}
+node.ingest: false
+{% endif %}
+node.ml: false
+{% if elasticsearch_cross_cluster %}
+cluster.remote.connect: true
+{% else %}
+cluster.remote.connect: false
+{% endif %}
+#
+# ----------------------------------- Paths ------------------------------------
+#
+path.data: "{{ elasticsearch_data_path }}"
+path.logs: "{{ elasticsearch_logs_path }}"
+#
+# ----------------------------------- Memory -----------------------------------
+#
+# Lock the memory on startup:
+#
+#bootstrap.memory_lock: true
+#
+# Make sure that the heap size is set to about half the memory available
+# on the system and that the owner of the process is allowed to use this
+# limit.
+#
+# Elasticsearch performs poorly when the system is swapping the memory.
+#
+# ---------------------------------- Network -----------------------------------
+#
+network.host: {{ elasticsearch_http_listen }}
+http.port: {{ elasticsearch_http_port }}
+transport.host: {{ elasticsearch_tcp_listen }}
+transport.tcp.port: {{ elasticsearch_tcp_port }}
+#
+# --------------------------------- Discovery ----------------------------------
+#
+discovery.seed_hosts:
+{% for node in elasticsearch_inital_master_nodes %}
+  - "{{ node }}"
+{% endfor %}
+cluster.initial_master_nodes:
+{% for node in elasticsearch_inital_master_nodes %}
+  - "{{ node }}"
+{% endfor %}
+#
+# ---------------------------------- Gateway -----------------------------------
+#
+# Block initial recovery after a full cluster restart until N nodes are started:
+#
+#gateway.recover_after_nodes: 3
+#
+# For more information, consult the gateway module documentation.
+#
+# ---------------------------------- Various -----------------------------------
+#
+# Require explicit names when deleting indices:
+#
+#action.destructive_requires_name: true

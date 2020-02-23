@@ -1,0 +1,35 @@
+{{ ansible_managed | comment }}
+
+file:
+  {{ vuls_home }}/config.toml:
+    exists: true
+    owner: vuls
+    group: vuls
+    mode: '0600'
+    filetype: file
+    sha256: {{ _vuls_config_toml_sha256.stat.checksum }}
+    contains:
+      - "[servers.localhost]"
+{% for server in vuls_remotes %}
+      - "[servers.{{ server.name }}]"
+{% endfor %}
+  {{ vuls_home }}/vuls.sh:
+    exists: true
+    owner: vuls
+    group: vuls
+    mode: '0700'
+    filetype: file
+  {{ vuls_home }}/.ssh/config:
+    exists: true
+    owner: vuls
+    group: vuls
+    mode: '0600'
+    filetype: file
+    contains:
+      - "/^StrictHostKeyChecking no$/"
+user:
+  vuls:
+    exists: true
+group:
+  vuls:
+    exists: true

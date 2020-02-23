@@ -34,55 +34,45 @@
 - name: install
   become: true
   package:
-    name: elasticsearch
+    name: kibana
     state: present
 
 - name: backup the original config file
   become: true
-  command: "cp -af {{ elasticsearch_config_file }} {{ elasticsearch_config_file }}.orig"
+  command: "cp -af {{ kibana_config_file }} {{ kibana_config_file }}.orig"
   args:
-    creates: "{{ elasticsearch_config_file }}.orig"
-
-- name: make data directory
-  become: true
-  file:
-    path: "{{ elasticsearch_data_path }}"
-    state: directory
-    owner: elasticsearch
-    group: elasticsearch
-    mode: '2750'
-  notify: elasticsearch restart
+    creates: "{{ kibana_config_file }}.orig"
 
 - name: generate config file
   become: true
   template:
-    src: elasticsearch.yml.j2
-    dest: "{{ elasticsearch_config_file }}"
+    src: kibana.yml.j2
+    dest: "{{ kibana_config_file }}"
     owner: root
-    group: elasticsearch
-    mode:  '0660'
-  notify: elasticsearch restart
+    group: root
+    mode:  '0644'
+  notify: kibana restart
 
 - name: auto start
   become: true
   service:
-    name: elasticsearch
+    name: kibana
     enabled: yes
-  notify: elasticsearch restart
+  notify: kibana restart
 
-- name: get sha256 in elasticsearch_config_file
+- name: get sha256 in kibana_config_file
   become: true
   stat:
-    path: "{{ elasticsearch_config_file }}"
+    path: "{{ kibana_config_file }}"
     checksum_algorithm: sha256
-  register: _elasticsearch_config_file_sha256
+  register: _kibana_config_file_sha256
   tags: [ goss ]
 
 - name: put gossfile
   become: true
   template:
     src: goss.yml.j2
-    dest: "{{ goss_dir }}/elasticsearch.yml"
+    dest: "{{ goss_dir }}/kibana.yml"
     owner: root
     group: root
     mode: '0600'

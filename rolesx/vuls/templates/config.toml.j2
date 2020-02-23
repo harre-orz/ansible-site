@@ -1,0 +1,40 @@
+{{ ansible_managed | comment }}
+
+[cveDict]
+type = "sqlite3"
+SQLite3Path = "{{ vuls_home }}/cve.sqlite3"
+
+[ovalDict]
+type = "sqlite3"
+SQLite3Path = "{{ vuls_home }}/oval.sqlite3"
+
+{% if vuls_email is defined and vuls_email.enable %}
+[email]
+smtpAddr      = "{{ vuls_email.host | default('localhost') }}"
+smtpPort      = "{{ vuls_email.port | default('25') }}"
+{% if vuls_email.user is defined %}
+user          = "{{ vuls_email.user }}"
+password      = "{{ vuls_email.password }}"
+{% endif %}
+from          = "{{ vuls_email.from }}"
+to            = ["{{ vuls_email.to | default([]) | join('\",\"') }}"]
+{% if vuls_email.cc is defined %}
+cc            = ["{{ vuls_email.cc | join('\",\"') }}"]
+{% endif %}
+subjectPrefix = "{{ vuls_email.subject_prefix | default('[vuls]') }}"
+{% endif %}
+
+[servers]
+[servers.localhost]
+host = "localhost"
+port = "local"
+scanMode = ["fast", "offline"]
+{% for server in vuls_remotes %}
+
+[servers.{{ server.name | default(server.host) }}]
+host = "{{ server.host }}"
+port = "{{ server.port | default('22') }}"
+user = "{{ server.user | default('vuls') }}"
+keyPath = "{{ vuls_home }}/.ssh/id_{{ vuls_key_type }}"
+scanMode = ["fast", "offline"]
+{% endfor %}

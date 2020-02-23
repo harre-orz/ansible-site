@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+
+service:
+  kibana:
+    running: true
+    enabled: true
+port:
+  tcp6:{{ kibana_port }}:
+    listening: true
+    ip:
+      - "::"
+file:
+  {{ kibana_config_file }}:
+    exists: true
+    owner: root
+    group: root
+    mode: '0644'
+    filetype: file
+    sha256: {{ _kibana_config_file_sha256.stat.checksum }}

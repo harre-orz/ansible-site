@@ -1,0 +1,61 @@
+{{ ansible_managed | comment }}
+
+service:
+  elasticsearch:
+    running: true
+    enabled: true
+user:
+  elasticsearch:
+    exists: true
+group:
+  elasticsearch:
+    exists: true
+port:
+{% if elasticsearch_data_node or elasticsearch_ingest_node %}
+  tcp6:{{ elasticsearch_http_port }}:
+    listening: true
+    ip:
+{% if elasticsearch_http_listen == '127.0.0.1' or elasticsearch_http_listen == '::1' or elasticsearch_http_listen == 'localhost' %}
+      - "127.0.0.1"
+      - "::1"
+{% elif elasticsearch_http_listen == '0.0.0.0' or elasticsearch_http_listen == '::' or elasticsearch_http_listen == '0' %}
+      - "0.0.0.0"
+      - "::"
+{% else %}
+      - "{{ elasticsearch_http_listen }}"
+{% endif %}
+{% endif %}
+{% if elasticsearch_master_node %}
+  tcp6:{{ elasticsearch_tcp_port }}:
+    listening: true
+    ip:
+{% if elasticsearch_tcp_listen == '127.0.0.1' or elasticsearch_tcp_listen == '::1' or elasticsearch_tcp_listen == 'localhost' %}
+      - "127.0.0.1"
+      - "::1"
+{% elif elasticsearch_tcp_listen == '0.0.0.0' or elasticsearch_tcp_listen == '::' or elasticsearch_tcp_listen == '0' %}
+      - "0.0.0.0"
+      - "::"
+{% else %}
+      - "{{ elasticsearch_tcp_listen }}"
+{% endif %}
+{% endif %}
+file:
+  {{ elasticsearch_config_file }}:
+    exists: true
+    owner: root
+    group: elasticsearch
+    mode: '0660'
+    filetype: file
+    sha256: {{ _elasticsearch_config_file_sha256.stat.checksum }}
+  {{ elasticsearch_data_path }}:
+    exists: true
+    owner: elasticsearch
+    group: elasticsearch
+    mode: '2750'
+    filetype: directory
+  {{ elasticsearch_logs_path }}:
+    exists: true
+    owner: elasticsearch
+    group: elasticsearch
+    mode: '2750'
+    filetype: directory
