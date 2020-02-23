@@ -1,0 +1,10 @@
+---
+- name: install
+  package:
+    name: syncthing
+
+- name: auto start
+  service:
+    name: "syncthing@{{ ansible_ssh_user }}"
+    state: started
+    enabled: yes

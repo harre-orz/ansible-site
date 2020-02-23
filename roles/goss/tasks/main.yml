@@ -1,49 +1,72 @@
 ---
-- name: アーキテクチャ別の変数を取り込む
-  include_vars: "arch_{{ ansible_architecture }}.yml"
+# アーキテクチャを確認する
+- name: include linux arch variables
+  include_vars: "linux-{{ ansible_architecture }}.yml"
   tags: [ always ]
 
-- name: 実行ファイルをインストール
-  become: yes
-  copy:
-    owner: root
-    mode: '0700'
-    src: "goss-linux-{{ goss_arch }}_{{ goss_version }}"
-    dest: "{{ goss_executable }}"
+# ホスト名を確認する
+- name: check if matches hostname and inventory
+  assert:
+    that: ansible_hostname == inventory_hostname
+  when: ansible_connection != 'local'
 
-- name: テストファイルを全て削除
+# SELinux が無効になっていること
+- name: check if selinux disabled
+  assert:
+    that: ansible_selinux.status == 'disabled'
+  when: not ansible_selinux
+
+# AppArmor が無効になっていること
+- name: check if apparmor disabled
+  shell: '[ ! "$(which aa-enabled > /dev/null && aa-enabled)" = "Yes" ]'
+  changed_when: no
+
+# インストールする
+- name: install
+  become: yes
+  get_url:
+    url: "https://github.com/aelsabbahy/goss/releases/download/v{{ goss_version }}/goss-{{ goss_arch }}"
+    dest: "{{ goss_executable }}"
+    owner: root
+    group: root
+    mode: 0700
+
+# ファイルをすべて削除する
+- name: erase all gossfiles
   become: yes
   file:
-    path: "{{ goss_dir }}"
+    path: "{{ goss_dir }}/"
     state: absent
-  when: goss_force_rebuild
+  when: goss_always_rebuild
 
-- name: ディレクトリを作成
+# ディレクトリを作成する
+- name: make directory
   become: yes
   file:
     path: "{{ item }}"
     state: directory
+    owner: root
+    group: root
+    mode: 0755
   with_items:
     - /usr/local/share/ansible/
-    - "{{ goss_dir }}/"
+    - "{{ goss_dir }}"
 
-- name: ansibleのgossモジュールをインストール
+# モジュールをインストールする
+- name: install ansible_goss module
   become: yes
-  copy:
-    src: goss.py
+  get_url:
+    url: "https://raw.githubusercontent.com/indusbox/goss-ansible/{{ goss_ansible_goss_py_version }}/goss.py"
     dest: /usr/local/share/ansible/goss.py
-
-- name: テストファイルを配置
-  become: yes
-  copy:
     owner: root
-    mode: '0600'
-    content: |
-      command:
-        {{ goss_executable }} -v:
-          exit-status: 0
-          stdout:
-          - "goss version {{ goss_version }}"
-      gossfile:
-        {{ goss_dir }}/*.yml: {}
+    group: root
+    mode: 0644
+
+- name: put top-level gossfile
+  become: yes
+  template:
+    src: goss.yaml
     dest: "{{ goss_dir }}/goss.yaml"
+    owner: root
+    group: root
+    mode: 0600

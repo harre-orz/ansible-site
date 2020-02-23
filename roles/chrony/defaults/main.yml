@@ -1,7 +1,12 @@
 ---
 # NTPサーバ
-# 注意: chrony.conf の初期ファイルをうまく操作できないので、IP(v6) しか指定できない
 chrony_ntp_servers:
-  - 210.173.160.27
-  - 210.173.160.57
-  - 210.173.160.87
+- ntp1.jst.mfeed.ad.jp
+- ntp2.jst.mfeed.ad.jp
+- ntp3.jst.mfeed.ad.jp
+
+# タイムゾーン
+chrony_timezone: Asia/Tokyo
+
+# うるう秒を考慮をするか？
+chrony_use_slew: yes

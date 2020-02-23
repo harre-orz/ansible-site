@@ -1,0 +1,90 @@
+{{ ansible_managed | comment }}
+
+Protocol 2
+#Port 22
+#AddressFamily any
+{% for sa in sshd_listen %}
+{% if sa.v4 is defined %}
+ListenAddress {{ sa.v4 | ipv4 }}:{{ sa.port | default('22') | int }}
+{% endif %}
+{% if sa.v6 is defined %}
+ListenAddress [{{ sa.v6 | ipv6 }}]:{{ sa.port | default('22') | int }}
+{% endif %}
+{% endfor %}
+#HostKey /etc/ssh/ssh_host_rsa_key
+#HostKey /etc/ssh/ssh_host_ecdsa_key
+#HostKey /etc/ssh/ssh_host_ed25519_key
+#RekeyLimit default none
+SyslogFacility {{ sshd_syslog_facility }}
+LogLevel {{ sshd_log_level }}
+#LoginGraceTime 2m
+#StrictModes yes
+#MaxAuthTries 6
+#MaxSessions 10
+#PubkeyAuthentication yes
+#AuthorizedKeysFile .ssh/authorized_keys
+#AuthorizedPrincipalsFile none
+#AuthorizedKeysCommandUser nobody
+#HostbasedAuthentication no
+#IgnoreUserKnownHosts no
+#IgnoreRhosts yes
+{% if sshd_permit_root_login | type_debug != 'bool' %}
+PermitRootLogin {{ sshd_permit_root_login }}
+{% elif sshd_permit_root_login %}
+PermitRootLogin yes
+{% else %}
+PermitRootLogin no
+{% endif %}
+PermitEmptyPasswords no
+{% if sshd_allow_password %}
+PasswordAuthentication yes
+{% else %}
+PasswordAuthentication no
+{% endif %}
+ChallengeResponseAuthentication no
+KerberosAuthentication no
+GSSAPIAuthentication no
+UsePAM yes
+#AllowAgentForwarding yes
+{% if sshd_tcp_forwarding %}
+AllowTcpForwarding yes
+{% else %}
+AllowTcpForwarding no
+{% endif %}
+#GatewayPorts no
+{% if sshd_x11_forwarding %}
+X11Forwarding yes
+{% else %}
+X11Forwarding no
+{% endif %}
+#X11DisplayOffset 10
+#X11UseLocalhost yes
+#PermitTTY yes
+#PrintMotd yes
+#PrintLastLog yes
+#TCPKeepAlive yes
+#UseLogin no
+#UsePrivilegeSeparation sandbox
+#PermitUserEnvironment no
+#Compression delayed
+ClientAliveInterval {{ sshd_keepalive_interval }}
+ClientAliveCountMax {{ sshd_keepalive_count_max }}
+#ShowPatchLevel no
+UseDNS no
+#PidFile /var/run/sshd.pid
+#MaxStartups 10:30:100
+#PermitTunnel no
+#ChrootDirectory none
+#VersionAddendum none
+{% if sshd_banner_file %}
+Banner {{ sshd_banner_file }}
+{% else %}
+#Banner none
+{% endif %}
+AcceptEnv LANG LC_*
+{% if sshd_use_internal_sftp %}
+Subsystem sftp internal-sftp
+{% else %}
+Subsystem sftp {{ sshd_sftp_server_executable }}
+{% endif %}
+AllowGroups root sshusers

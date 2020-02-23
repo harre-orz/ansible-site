@@ -1,0 +1,25 @@
+---
+- name: install gitlab-runner
+  package:
+    name: gitlab-runner
+
+- name: make directory
+  file:
+    path: /opt/lxd-executor
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: put script
+  copy:
+    src: "{{ item }}"
+    dest: "/opt/lxd-executor/{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+  with_items:
+  - base.sh
+  - cleanup.sh
+  - prepare.sh
+  - run.sh

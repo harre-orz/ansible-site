@@ -1,0 +1,29 @@
+{{ ansible_managed | comment }}
+
+service:
+  chronyd:
+    running: true
+    enabled: true
+command:
+  chronyc:
+    exec: chronyc activity
+    exit-status: 0
+    stdout:
+      - " sources online"
+      - "!0 sources online"
+file:
+  {{ chrony_config_file }}:
+    exists: true
+    owner: root
+    group: root
+    filetype: file
+    sha256: {{ _chrony_config_file_sha256.stat.checksum }}
+{% if chrony_keyfile %}
+  {{ chrony_keyfile }}:
+    exists: true
+    filetype: file
+{% endif %}
+  /etc/localtime:
+    exists: true
+    filetype: symlink
+    linked-to: /usr/share/zoneinfo/{{ chrony_timezone }}

@@ -1,0 +1,11 @@
+---
+- name: install epel-release
+  package:
+    name: epel-release
+
+- name: install lxc
+  package:
+    name:
+    - lxc
+    - lxc-templates
+    - bridge-utils

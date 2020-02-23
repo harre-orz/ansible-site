@@ -1,0 +1,14 @@
+{{ ansible_managed | comment }}
+
+gossfile:
+  {{ goss_dir }}/*.yml: {}
+command:
+  goss:
+    exec: {{ goss_executable }} -v
+    exit-status: 0
+    stdout:
+    - "goss version v{{ goss_version }}"
+{% if ansible_selinux.status == true %}
+  selinuxenabled:
+    exit-status: 1
+{% endif %}

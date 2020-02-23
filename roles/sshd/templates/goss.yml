@@ -1,0 +1,30 @@
+{{ ansible_managed | comment }}
+
+service:
+  sshd:
+    running: true
+    enabled: true
+port:
+{% for sa in sshd_listen %}
+{% if sa.v4 is defined %}
+  tcp:{{ sa.port | default('22') }}:
+    ip:
+    - "{{ sa.v4 }}"
+{% endif %}
+{% if sa.v6 is defined %}
+  tcp:{{ sa.port | default('22') }}:
+    ip:
+    - "{{ sa.v6 }}
+{% endif %}
+{% endfor %}
+file:
+  {{ sshd_config_file }}:
+    exists: true
+    owner: root
+    group: root
+    mode: "{{ sshd_config_file_perm }}"
+    filetype: file
+    sha256: {{ _sshd_config_file_sha256.stat.checksum }}
+group:
+  sshusers:
+    exists: true

@@ -1,76 +1,71 @@
 ---
-- name: タイムゾーンをAsia/Tokyo
-  become: yes
-  timezone:
-    name: Asia/Tokyo
-  notify: chrony restart chronyd
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "_{{ ansible_hostname }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+  tags: [ always ]
 
-- name: インストール
+# パッケージのインストールする
+- name: install
   become: yes
   package:
-    name: chrony
-  notify: chrony restart chronyd
+    name: "{{ chrony_package }}"
+  notify: chrony restart
 
-- name: 設定ファイルをバックアップ
-  become: yes
-  shell: "cp -af {{ chrony_conf_file }} {{ chrony_conf_file }}.orig"
+# 設定ファイルをバックアップする
+- name: backup the original config file
+  become: true
+  command: "cp -af {{ chrony_config_file }} {{ chrony_config_file }}.orig"
   args:
-    creates: "{{ chrony_conf_file }}.orig"
+    creates: "{{ chrony_config_file }}.orig"
 
-- name: 初期設定されている接続先NTPサーバを削除
+# タイムゾーンを指定する
+# timezone module を使用すると相対パスになるので file module を使う
+- name: set timezone
   become: yes
-  lineinfile:
-    path: "{{ chrony_conf_file }}"
-    regexp: '^#?(server\s+.*\.ntp\.org\s+iburst)'
-    state: absent
-  notify: chrony restart chronyd
+  file:
+    path: /etc/localtime
+    state: link
+    src: "/usr/share/zoneinfo/{{ chrony_timezone }}"
+    owner: root
+    group: root
+  notify: chrony restart
 
-- name: 接続先NTPサーバを設定
+# 設定ファイルを作成する
+- name: generate chrony.conf
   become: yes
-  blockinfile:
-    path: "{{ chrony_conf_file }}"
-    insertafter: '^[#!]\s?server\s+'
-    block: |
-      {% for ip in chrony_ntp_servers %}
-      server {{ ip | ipaddr }} iburst
-      {% endfor %}
-  notify: chrony restart chronyd
+  template:
+    src: chrony.conf
+    dest: "{{ chrony_config_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: chrony restart
 
-- name: 自動起動
+# 自動的に起動する
+- name: auto start
   become: yes
   service:
     name: chronyd
     state: started
     enabled: yes
-  notify: chrony restart chronyd
 
-- name: テストファイルを配置
+- name: get sha256 in chrony_config_file
   become: yes
-  copy:
-    owner: root
-    mode: '0600'
-    content: |
-      service:
-        chronyd:
-          running: true
-          enabled: true
-      command:
-        chronyc activity:
-          exit-status: 0
-          stdout:
-            - " sources online"
-            - "!0 sources online"
-      file:
-        {{ chrony_conf_file }}:
-          exists: true
-          contains:
-      {% for ip in chrony_ntp_servers %}
-            - "server {{ ip }} iburst"
-      {% endfor %}
-        /etc/localtime:
-          exists: true
-          filetype: symlink
-          contains:
-            - JST-9
+  stat:
+    path: "{{ chrony_config_file }}"
+    checksum_algorithm: sha256
+  register: _chrony_config_file_sha256
+
+- name: put gossfile
+  become: yes
+  template:
+    src: goss.yml
     dest: "{{ goss_dir }}/chrony.yml"
-  tags: [ goss ]
+    owner: root
+    group: root
+    mode: 0600
+  when: goss_dir is defined

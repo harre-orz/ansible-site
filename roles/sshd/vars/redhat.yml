@@ -1,0 +1,5 @@
+---
+sshd_config_file_perm: '0600'
+sshd_package: openssh-server
+sshd_sftp_server_executable: /usr/libexec/openssh/sftp-server
+sshd_syslog_facility: AUTHPRIV

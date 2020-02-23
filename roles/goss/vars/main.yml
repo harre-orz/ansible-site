@@ -1,4 +1,5 @@
 ---
-goss_version: v0.3.6
-goss_dir: /usr/local/share/goss
+goss_version: 0.3.7
+goss_ansible_goss_py_version: 1.0.0
 goss_executable: /usr/local/bin/goss
+goss_dir: /usr/local/share/goss

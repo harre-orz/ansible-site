@@ -1,0 +1,5 @@
+---
+- hosts: WEB_LXC
+  become: yes
+  tasks:
+  - include: "lxc.yml"

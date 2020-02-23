@@ -1,56 +1,46 @@
 ---
-## サービスポート番号
-sshd_port: 22
+# LISTENアドレスとポート番号を指定する。ポート番号を省略した場合は 22 になる。
+sshd_listen:
+- v4: 0.0.0.0
+- v6: '::'
+#- { v4: 127.0.0.1, port: 12345 }
 
-## アドレスファミリー
-## - inet   : IPv4のみ許可する
-## - inet6  : IPv6のみ許可する
-## - any    : すべてのアドレスで許可する
-sshd_addrspec: any
+# パスワード認証を許可するか
+sshd_allow_password: no    # 許可しない(公開鍵認証のみ)
+#sshd_allow_password: yes   # 許可する
 
-## 受け付けるアドレス
-## 複数のアドレスおよびポートを指定できる
-## ポートは省略することが可能で、その場合は sshd_port が使用される
-#sshd_listen:
-#- ipv4: 0.0.0.0
-#- ipv6: ::1
-#  port: 12345
+# root のSSH接続を許可するか
+sshd_permit_root_login: no                      # 許可しない
+#sshd_permit_root_login: yes                     # 許可する(非推奨)
+#sshd_permit_root_login: prohibit-password       # パスワード認証は不可、公開鍵認証でログインが可能
+#sshd_permit_root_login: without-password        # without-password と全く同じ(過去互換のため？)
+#sshd_permit_root_login: forced-commands-only    # パスワード認証は不可、公開鍵認証でコマンド実行が可能
 
-## パスワード認証を許可するか？
-## - yes : 許可する
-## - no  : 拒否する(公開鍵認証のみ)
-sshd_ask_pass: yes
+# キープアライブ時間を指定する
+# 例: 60 interval * 3 count_max = 180 seconds
+sshd_keepalive_interval: 0    # (0:無効)
+sshd_keepalive_count_max: 3
 
-## rootログインを許可するか？
-## - 'yes'                : 許可する
-## - 'no'                 : 拒否する
-## - without-password     : パスワード認証を拒否する
-## - forced-commands-only : 直接アクセスを拒否する
-## 注意: シングルクォートで囲わないと True/False と解釈されてしまう
-sshd_permit_root_login: 'yes'
+# ポートフォワーディングを許可するか
+sshd_tcp_forwarding: no
 
-## ssh agent の forwarding(引き継ぎ)を許可するか？
-sshd_agent_forwarding: yes
+# X11フォワーディングするか
+sshd_x11_forwarding: no
 
-## ssh ポートフォワーディング（sshトンネル）を許可するか？
-sshd_tcp_forwarding: yes
+# internal-sftp を使用するか
+sshd_use_internal_sftp: yes
+#sshd_user_internal_sftp: no  # レガシーの sftp を使用する
 
-## X11のセキュアなトンネルを許可するか？
-sshd_x11_forwarding: yes
+# 接続前に表示させるメッセージを指定する
+sshd_banner_file:
+#sshd_banner_file: /path/to/banner.txt
 
-## internal-sftp を使用するか？
-## 過去の経緯で sftp-server がデフォルトとなっているが、internal-sftp が便利なので推奨されている
-sshd_use_internal_sftp: no
-
-## sftpのみアカウントの設定
-## - users    : sftpのみ許可するUNIXユーザ名を指定する（省略可能。ただし users, groups いずれかでで最低１つは指定する必要がある）
-## - groups   : sftpのみ許可するUNIXグループ名を指定する（省略可能。ただし users, groups いずれかでで最低１つは指定する必要がある）
-## - ask_pass : パスワード認証を許可するか？（省略した場合は sshd_ask_pass が使われる）
-## - umask    : マスクを指定する（省略可能）
-## - chroot   : chroot先のフォルダを指定する（省略可能）
-#sshd_sftp_only_accounts:
-#  users: [ 'testuser' ]
-#  groups: [ 'testgroup' ]
-#  ask_pass: yes
-#  umask: '0600'
-#  chroot: '~'
+# ログレベル
+#sshd_log_level: QUIET
+#sshd_log_level: FATAL
+#sshd_log_level: ERROR
+sshd_log_level: INFO
+#sshd_log_level: VERBOSE
+#sshd_log_level: DEBUG
+#sshd_log_level: DEBUG2
+#sshd_log_level: DEBUG3

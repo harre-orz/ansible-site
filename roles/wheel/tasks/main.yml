@@ -1,0 +1,46 @@
+---
+# wheel グループを作成する
+- name: create wheel group
+  become: yes
+  group:
+    name: wheel
+    system: yes
+
+# ansible_user を wheel グループに追加する
+- name: join ansible_user to wheel
+  become: yes
+  user:
+    name: "{{ ansible_user }}"
+    groups: wheel
+    append: yes
+  when: wheel_join_ansible_user
+
+# su が使えるユーザを wheel グループに限定する
+- name: su wheel only required
+  become: yes
+  pamd:
+    name: su
+    type: auth
+    control: sufficient
+    module_path: pam_rootok.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_wheel.so
+    module_arguments: 'use_uid'
+    state: after
+
+# sudo をインストールする
+- name: install sudo
+  become: yes
+  package:
+    name: sudo
+
+# sudo から %wheel を削除する
+- name: disable %wheel for sudo
+  become: yes
+  lineinfile:
+    path: /etc/sudoers
+    regexp: "^%{{ item }}[ \t]"
+    state: absent
+  with_items:
+  - wheel
