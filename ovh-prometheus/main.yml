@@ -1,0 +1,8 @@
+---
+- hosts: OVH
+  become: yes
+  roles:
+  - role: prometheus-server
+    tags: prometheus-server
+  - role: prometheus-alertmanager
+    tags: prometheus-alertmanager

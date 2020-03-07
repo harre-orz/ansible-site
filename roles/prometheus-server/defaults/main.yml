@@ -1,0 +1,9 @@
+---
+
+# https://prometheus.io/download/
+prometheus_server_version: X.Y.Z
+
+prometheus_server_listen_addr: '::1'
+prometheus_server_listen_port: 9090
+
+prometheus_server_external_url:

@@ -10,9 +10,9 @@ User=prometheus
 Group=prometheus
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=/usr/local/bin/prometheus \
-  --config.file={{ prometheus_config_dir }}/prometheus.yml \
-  --storage.tsdb.path={{ prometheus_db_dir }} \
-  --web.listen-address={{ prometheus_web_listen_address }}:{{ prometheus_web_listen_port }}
+  --config.file={{ prometheus_server_config_dir }}/prometheus.yml \
+  --storage.tsdb.path={{ prometheus_server_data_dir }} \
+  --web.listen-address=[{{ prometheus_server_listen_addr | ipaddr }}]:{{ prometheus_server_listen_port | int }}
 
 SyslogIdentifier=prometheus
 Restart=always

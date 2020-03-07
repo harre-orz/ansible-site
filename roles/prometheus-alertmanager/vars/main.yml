@@ -1,0 +1,3 @@
+---
+prometheus_alertmanager_config_dir: /etc/alertmanager
+prometheus_alertmanager_data_dir: /var/local/alertmanager

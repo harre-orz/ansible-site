@@ -1,0 +1,122 @@
+---
+- name: required variables
+  assert:
+    that:
+    - prometheus_server_version != 'X.Y.Z'
+
+- name: set fact
+  set_fact:
+    _prometheus_server_basename: "prometheus-{{ prometheus_server_version }}.linux-amd64"
+
+- name: download to local
+  delegate_to: localhost
+  become: no
+  get_url:
+    url: "https://github.com/prometheus/prometheus/releases/download/\
+          v{{ prometheus_server_version }}/{{ _prometheus_server_basename }}.tar.gz"
+    dest: "/tmp/{{ _prometheus_server_basename }}.tar.gz"
+  changed_when: no
+  check_mode: no
+
+- name: unpack to local
+  delegate_to: localhost
+  become: no
+  unarchive:
+    src: "/tmp/{{ _prometheus_server_basename }}.tar.gz"
+    dest: "/tmp"
+  changed_when: no
+  check_mode: no
+
+- name: install
+  become: yes
+  copy:
+    src: "/tmp/{{ _prometheus_server_basename }}/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: '0755'
+  with_items:
+  - prometheus
+  - promtool
+  notify: prometheus-server restart
+
+- name: create prometheus group
+  become: yes
+  group:
+    name: prometheus
+
+- name: create prometheus user
+  become: yes
+  user:
+    name: prometheus
+    group: prometheus
+    shell: /sbin/nologin
+    home: "{{ prometheus_server_data_dir }}"
+    createhome: no
+
+- name: create config directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: prometheus
+    mode: '0750'
+  with_items:
+    - "{{ prometheus_server_config_dir }}"
+    - "{{ prometheus_server_config_dir }}/conf.d"
+    - "{{ prometheus_server_config_dir }}/rules"
+    - "{{ prometheus_server_config_dir }}/fule_sd"
+
+- name: create data directory
+  become: yes
+  file:
+    path: "{{ prometheus_server_data_dir }}"
+    owner: prometheus
+    group: prometheus
+    mode: '0750'
+
+- name: put config
+  become: yes
+  template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_server_config_dir }}/prometheus.yml"
+    owner: root
+    group: prometheus
+    mode: '0640'
+  notify: prometheus-server restart
+
+- block:
+  - name: systemd service unit
+    become: yes
+    template:
+      src: prometheus.service.j2
+      dest: /etc/systemd/system/prometheus.service
+      owner: root
+      group: root
+      mode: '0644'
+    notify: prometheus-server restart
+  - name: daemon reload
+    become: yes
+    systemd:
+      name: prometheus
+      daemon_reload: yes
+    notify: prometheus-server restart
+  when: ansible_service_mgr == 'systemd'
+
+- name: auto start
+  become: yes
+  service:
+    name: prometheus
+    state: started
+    enabled: yes
+
+- name: put gossfile
+  become: yes
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/prometheus-server.yml"
+    owner: root
+    group: root
+    mode: '0600'
+  when: goss_dir is defined

@@ -1,0 +1,4 @@
+---
+prometheus_alertmanager_version: X.Y.Z
+prometheus_alertmanager_listen_addr: '::1'
+prometheus_alertmanager_listen_port: 9093

@@ -1,0 +1,6 @@
+---
+prometheus_server_version: 2.16.0
+prometheus_server_listen_addr: '::'
+
+prometheus_alertmanager_version: 0.20.0
+prometheus_alertmanager_listen_addr: '::'

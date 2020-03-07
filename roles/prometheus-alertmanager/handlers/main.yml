@@ -1,0 +1,6 @@
+---
+- name: prometheus-alertmanager restart
+  become: yes
+  service:
+    name: alertmanager
+    state: restarted

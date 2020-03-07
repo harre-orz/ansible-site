@@ -1,11 +1,11 @@
 ---
-- name: prometheus reload
+- name: prometheus-server reload
   become: true
   service:
     name: prometheus
     state: reloaded
 
-- name: prometheus restart
+- name: prometheus-server restart
   become: true
   service:
     name: prometheus

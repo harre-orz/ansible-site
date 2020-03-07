@@ -1,8 +1,0 @@
----
-- hosts: localhost
-  roles:
-    - goss
-    - prometheus-server
-  post_tasks:
-    - include: 'roles/goss/post_tasks/main.yml'
-      when: goss_dir is defined
