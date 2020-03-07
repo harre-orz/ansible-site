@@ -2,7 +2,24 @@
 - hosts: OVH
   become: yes
   roles:
-  - role: prometheus-server
-    tags: prometheus-server
+  - role: prometheus-node-exporter
+    tags: prometheus-node-exporter
+  - role: prometheus-blackbox-exporter
+    tags: prometheus-blackbox-exporter
   - role: prometheus-alertmanager
     tags: prometheus-alertmanager
+  - role: prometheus-server
+    tags: prometheus-server
+  - role: selfsigned-cert
+    tags: selfsigned-cert
+  - role: nginx
+    tags: nginx
+  tasks:
+  - name: make htpasswd
+    htpasswd:
+      path: "{{ hoge }}"
+      name: "{{ item.user }}"
+      password: "{{ item.pass }}"
+    with_items:
+    - user: hoge
+      pass: hoge

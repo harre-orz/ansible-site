@@ -1,0 +1,46 @@
+---
+nginx_error_log_file: /var/log/nginx/error.log
+nginx_pid_file: /run/nginx.pid
+nginx_server_error_page:
+  '/40x.html':
+  - 404
+  '/50x.html':
+  - 500
+  - 502
+  - 503
+  - 504
+
+nginx_log_format:
+  main: >-
+    $remote_addr - $remote_user [$time_local] "$request"
+    status $body_bytes_sent "$http_referer"
+    $http_user_agent" "$http_x_forwarded_for"
+
+nginx_server_name: '_'
+nginx_server_root: /usr/share/nginx/html
+nginx_server_location:
+  '/': 'hoge'
+
+nginx_server_http_enable: yes
+nginx_server_http_listen:
+- '0.0.0.0:80'
+- '[::]:80'
+
+nginx_server_http_error_log_file: /var/log/nginx/error.log
+nginx_server_http_access_log_file:
+  main: /var/log/nginx/access.log
+
+nginx_server_https_enable: no
+nginx_server_https_listen:
+- '0.0.0.0:443'
+- '[::]:443'
+nginx_server_https_error_log_file: /var/log/nginx/error.log
+nginx_server_https_access_log_file:
+  main: /var/log/nginx/access.log
+
+nginx_server_ssl_certificate: ''
+nginx_server_ssl_certificate_key: ''
+nginx_server_ssl_session_cache: 'shared:SSL:1m'
+nginx_server_ssl_session_timeout: 10m
+nginx_server_ssl_cipher: 'HIGH:!aNULL:!MD5'
+nginx_server_ssl_prefer_server_ciphers: yes

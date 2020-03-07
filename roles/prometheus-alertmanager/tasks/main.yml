@@ -1,4 +1,15 @@
 ---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+  tags: [ always ]
+
 - name: required variables
   assert:
     that:
@@ -6,7 +17,7 @@
 
 - name: set fact
   set_fact:
-    _prometheus_alertmanager_basename: "alertmanager-{{ prometheus_alertmanager_version }}.linux-amd64"
+    _prometheus_alertmanager_basename: "alertmanager-{{ prometheus_alertmanager_version }}.{{ prometheus_alertmanager_arch }}"
 
 - name: download to local
   delegate_to: localhost

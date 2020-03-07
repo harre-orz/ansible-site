@@ -1,9 +1,4 @@
 ---
-- name: required netaddr
-  delegate_to: 'localhost'
-  pip:
-    name: netaddr
-
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:

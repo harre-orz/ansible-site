@@ -1,0 +1,4 @@
+---
+selfsigned_cert_fqdn: www.example.com
+selfsigned_cert_cert_dir: /etc/pki/tls/certs/
+selfsigned_cert_private_dir: /etc/pki/tls/private/

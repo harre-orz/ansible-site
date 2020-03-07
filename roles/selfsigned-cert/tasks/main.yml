@@ -1,0 +1,41 @@
+---
+- name: generate oenssl private key
+  delegate_to: localhost
+  become: no
+  openssl_privatekey:
+    path: "/tmp/{{ selfsigned_cert_fqdn }}.key"
+
+- name: generate openssl csr
+  delegate_to: localhost
+  become: no
+  openssl_csr:
+    path: "/tmp/{{ selfsigned_cert_fqdn }}.csr"
+    privatekey_path: "/tmp/{{ selfsigned_cert_fqdn }}.key"
+    common_name: "{{ selfsigned_cert_fqdn }}"
+
+- name: generate openssl certificate
+  delegate_to: localhost
+  become: no
+  openssl_certificate:
+    path: "/tmp/{{ selfsigned_cert_fqdn }}.crt"
+    privatekey_path: "/tmp/{{ selfsigned_cert_fqdn }}.key"
+    csr_path: "/tmp/{{ selfsigned_cert_fqdn }}.csr"
+    provider: selfsigned
+
+- name: put private_key file
+  become: yes
+  copy:
+    src: "/tmp/{{ selfsigned_cert_fqdn }}.key"
+    dest: "{{ selfsigned_cert_private_dir }}/{{ selfsigned_cert_fqdn }}.key"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: put certificate file
+  become: yes
+  copy:
+    src: "/tmp/{{ selfsigned_cert_fqdn }}.crt"
+    dest: "{{ selfsigned_cert_cert_dir }}/{{ selfsigned_cert_fqdn }}.crt"
+    owner: root
+    group: root
+    mode: '0644'

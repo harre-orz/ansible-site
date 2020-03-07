@@ -1,0 +1,97 @@
+{{ ansible_managed | comment }}
+
+user {{ nginx_user }};
+worker_processes auto;
+pid {{ nginx_pid_file }};
+
+# Load dynamic modules. See /usr/share/doc/nginx/README.dynamic.
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+{% for name, fmt in nginx_log_format.items() %}
+    log_format {{ name }} '{{fmt}}';
+{% endfor %}
+
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 2048;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+{% if nginx_server_http_enable %}
+    # default http
+    server {
+        server_name  {{ nginx_server_name }};
+        root         {{ nginx_server_root }};
+{% for listen in nginx_server_http_listen %}
+        listen       {{ listen }} default_server;
+{% endfor %}
+
+{% for path, block in nginx_server_location.items() %}
+        location {{ path }} {
+{% for key, val in block.items() %}
+            {{ key }} {{ val }};
+{% endfor %}
+        }
+{% endfor %}
+
+        error_log {{ nginx_server_http_error_log_file }};
+{% for name, file in nginx_server_http_access_log_file.items() %}
+        access_log {{ file }} {{ name }};
+{% endfor %}
+
+{% for html, retcodes in nginx_server_error_page.items() %}
+        error_page {{ retcodes | join(' ') }} {{ html }};
+            location = {{ html }} {
+        }
+{% endfor %}
+    }
+{% endif %}
+
+{% if nginx_server_https_enable %}
+   # default https
+   server {
+        server_name  {{ nginx_server_name }};
+        root         {{ nginx_server_root }};
+{% for listen in nginx_server_https_listen %}
+        listen       {{ listen }} ssl http2 default_server;
+{% endfor %}
+
+        ssl_certificate "{{ nginx_server_ssl_certificate }}";
+        ssl_certificate_key "{{ nginx_server_ssl_certificate_key }}";
+        ssl_session_cache {{ nginx_server_ssl_session_cache }};
+        ssl_session_timeout  {{ nginx_server_ssl_session_timeout }};
+        ssl_ciphers {{ nginx_server_ssl_cipher }};
+{% if nginx_server_ssl_prefer_server_ciphers %}
+        ssl_prefer_server_ciphers on;
+{% endif %}
+
+
+{% for path, block in nginx_server_location.items() %}
+        location {{ path }} {
+{% for key, val in block.items() %}
+            {{ key }} {{ val | quote }};
+{% endfor %}
+        }
+{% endfor %}
+
+        error_log {{ nginx_server_https_error_log_file }};
+{% for name, file in nginx_server_https_access_log_file.items() %}
+        access_log {{ file }} {{ name }};
+{% endfor %}
+
+{% for html, retcodes in nginx_server_error_page.items() %}
+        error_page {{ retcodes | join(' ') }} {{ html }};
+            location = {{ html }} {
+        }
+{% endfor %}
+    }
+{% endif %}
+}

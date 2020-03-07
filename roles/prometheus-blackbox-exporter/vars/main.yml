@@ -1,0 +1,2 @@
+---
+prometheus_blackbox_exporter_config_dir: /etc/blackbox_exporter

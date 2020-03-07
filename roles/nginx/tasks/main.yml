@@ -1,0 +1,25 @@
+---
+- name: install
+  become: yes
+  package:
+    name: nginx
+  notify: nginx restart
+
+- name: backup original config
+  become: yes
+  command: cp -ap {{ nginx_config_file }} {{ nginx_config_file }}.orig
+  args:
+    creates: "{{ nginx_config_file }}.orig"
+
+- name: put config file
+  become: yes
+  template:
+    src: nginx.conf.j2
+    dest: "{{ nginx_config_file }}"
+  notify: nginx reload
+
+- name: auto start
+  service:
+    name: nginx
+    state: started
+    enabled: yes

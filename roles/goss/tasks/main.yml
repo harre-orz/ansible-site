@@ -1,7 +1,14 @@
 ---
 # アーキテクチャを確認する
-- name: include linux arch variables
-  include_vars: "linux-{{ ansible_architecture }}.yml"
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
 # ホスト名を確認する

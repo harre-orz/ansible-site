@@ -1,0 +1,5 @@
+---
+prometheus_blackbox_exporter_version: X.Y.Z
+
+prometheus_blackbox_exporter_listen_addr: '::1'
+prometheus_blackbox_exporter_listen_port: 9115

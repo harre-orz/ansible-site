@@ -1,0 +1,19 @@
+{{ ansible_managed | comment }}
+
+[Unit]
+Description=Prometheus Node_exporter
+After=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/node_exporter \
+  --web.listen-address=[{{ prometheus_node_exporter_listen_addr | ipaddr }}]:{{ prometheus_node_exporter_listen_port | int }}
+
+SyslogIdentifier=prometheus-node_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

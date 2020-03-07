@@ -1,1 +1,5 @@
 ---
+prometheus_node_exporter_version: X.Y.Z
+
+prometheus_node_exporter_listen_addr: '::1'
+prometheus_node_exporter_listen_port: 9100
