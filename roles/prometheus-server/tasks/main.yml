@@ -2,6 +2,7 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
+    - "_{{ ansible_hostname }}.yml"
     - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
@@ -83,6 +84,7 @@
   become: yes
   file:
     path: "{{ prometheus_server_data_dir }}"
+    state: directory
     owner: prometheus
     group: prometheus
     mode: '0750'
@@ -96,6 +98,7 @@
     group: prometheus
     mode: '0640'
   notify: prometheus-server reload
+  tags: [ configure ]
 
 - name: put rules
   become: yes
@@ -106,6 +109,7 @@
   with_fileglob:
   - rules/*.yml
   notify: prometheus-server reload
+  tags: [ configure ]
 
 - block:
   - name: systemd service unit
@@ -124,6 +128,7 @@
       daemon_reload: yes
     notify: prometheus-server restart
   when: ansible_service_mgr == 'systemd'
+  tags: [ configure ]
 
 - name: auto start
   become: yes
@@ -141,3 +146,4 @@
     group: root
     mode: '0600'
   when: goss_dir is defined
+  tags: [ configure ]

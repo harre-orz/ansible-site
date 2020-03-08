@@ -1,0 +1,19 @@
+---
+- name: add rpm key
+  become: yes
+  rpm_key:
+    key: https://packages.grafana.com/gpg.key
+
+- name: yum repository
+  become: yes
+  yum_repository:
+    name: grafana
+    description: grafana
+    # https://grafana.com/docs/grafana/latest/installation/rpm/#install-from-yum-repository
+    baseurl: https://packages.grafana.com/oss/rpm
+    file: grafana.repo
+
+- name: install grafana
+  become: yes
+  yum:
+    name: grafana

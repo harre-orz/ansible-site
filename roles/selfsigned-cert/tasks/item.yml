@@ -1,0 +1,100 @@
+---
+- name: set fact
+  set_fact:
+    _selfsigned_cert_fqdn: "{{ item.key }}"
+    _selfsigned_cert_cert_dir: "{{ item.value.cert_dir | default(selfsigned_cert_cert_dir) }}"
+    _selfsigned_cert_private_dir: "{{ item.value.private_dir | default(selfsigned_cert_private_dir) }}"
+
+- name: check variables
+  assert:
+    that:
+    - _selfsigned_cert_fqdn != ''
+
+- block:
+  - name: validate ssl cert/private files
+    become: yes
+    shell: >-
+      openssl x509 -noout -modulus -in '{{ _selfsigned_cert_cert_dir }}/{{ _selfsigned_cert_fqdn }}.crt'
+      &&
+      openssl rsa -noout -modulus -in '{{ _selfsigned_cert_private_dir }}/{{ _selfsigned_cert_fqdn }}.key'
+      &&
+      [
+      $(openssl x509 -noout -modulus -in '{{ _selfsigned_cert_cert_dir }}/{{ _selfsigned_cert_fqdn }}.crt')
+      ==
+      $(openssl rsa -noout -modulus -in '{{ _selfsigned_cert_private_dir }}/{{ _selfsigned_cert_fqdn }}.key')
+      ]
+    changed_when: no
+    check_mode: no
+
+  rescue:
+  - name: create directory to local
+    delegate_to: localhost
+    become: no
+    file:
+      path: "/tmp/{{ _selfsigned_cert_fqdn }}"
+      state: directory
+    check_mode: no
+
+  - name: create directory
+    become: yes
+    file:
+      path: "{{ item }}"
+      state: directory
+      owner: root
+      group: root
+      mode: '0755'
+    with_items:
+    - "{{ _selfsigned_cert_cert_dir }}"
+    - "{{ _selfsigned_cert_private_dir }}"
+
+  - name: generate oenssl privatekey to local
+    delegate_to: localhost
+    become: no
+    openssl_privatekey:
+      path: "/tmp/{{ _selfsigned_cert_fqdn }}/key"
+    check_mode: no
+
+  - name: generate openssl csr to local
+    delegate_to: localhost
+    become: no
+    openssl_csr:
+      path: "/tmp/{{ _selfsigned_cert_fqdn }}/csr"
+      privatekey_path: "/tmp/{{ _selfsigned_cert_fqdn }}/key"
+      common_name: "{{ _selfsigned_cert_fqdn }}"
+    check_mode: no
+
+  - name: generate openssl certificate to local
+    delegate_to: localhost
+    become: no
+    openssl_certificate:
+      path: "/tmp/{{ _selfsigned_cert_fqdn }}/crt"
+      privatekey_path: "/tmp/{{ _selfsigned_cert_fqdn }}/key"
+      csr_path: "/tmp/{{ _selfsigned_cert_fqdn }}/csr"
+      provider: selfsigned
+    check_mode: no
+
+  - name: put openssl certificate file to local
+    become: yes
+    copy:
+      src: "/tmp/{{ item.key }}/crt"
+      dest: "{{ _selfsigned_cert_cert_dir }}/{{ item.key }}.crt"
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: put openssl privatekey file
+    become: yes
+    copy:
+      src: "/tmp/{{ _selfsigned_cert_fqdn }}/key"
+      dest: "{{ _selfsigned_cert_private_dir }}/{{ _selfsigned_cert_fqdn }}.key"
+      owner: root
+      group: root
+      mode: '0600'
+
+  - name: cleanup openssl files to local
+    delegate_to: localhost
+    become: no
+    file:
+      path: "/tmp/{{ _selfsigned_cert_fqdn }}"
+      state: absent
+    check_mode: no

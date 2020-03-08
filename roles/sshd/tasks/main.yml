@@ -3,13 +3,16 @@
   include_vars: "{{ item }}"
   with_first_found:
     - "_{{ ansible_hostname }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
     - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
     - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
 # パッケージをインストールする
-- name: install
+- name: install sshd
   become: yes
   package:
     name: "{{ sshd_package }}"
@@ -44,7 +47,7 @@
     append: yes
 
 # 設定ファイルを作成する
-- name: generate sshd_config
+- name: put sshd_config file
   become: yes
   template:
     src: sshd_config
@@ -54,6 +57,7 @@
     mode: "{{ sshd_config_file_perm }}"
     validate: "{{ sshd_executable }} -t -f %s"
   notify: sshd restart
+  tags: [ configure ]
 
 # 自動的に起動する
 - name: auto start
@@ -63,7 +67,7 @@
     state: started
     enabled: true
 
-- name: get sha256 in sshd_config_file
+- name: get sha256 in sshd_config file
   become: yes
   stat:
     path: "{{ sshd_config_file }}"
@@ -79,3 +83,4 @@
     group: root
     mode: 0600
   when: goss_dir is defined
+  tags: [ configure ]

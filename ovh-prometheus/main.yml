@@ -17,9 +17,6 @@
   tasks:
   - name: make htpasswd
     htpasswd:
-      path: "{{ hoge }}"
-      name: "{{ item.user }}"
-      password: "{{ item.pass }}"
-    with_items:
-    - user: hoge
-      pass: hoge
+      path: "{{ prometheus_htpasswd }}"
+      name: "{{ prometheus_user }}"
+      password: "{{ prometheus_pass }}"

@@ -1,4 +1,16 @@
 ---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+    - "_{{ ansible_hostname }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_distribution | lower }}.yml"
+    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+    - "{{ ansible_os_family | lower }}.yml"
+  tags: [ always ]
+
 # wheel グループを作成する
 - name: create wheel group
   become: yes
@@ -16,7 +28,7 @@
   when: wheel_join_ansible_user
 
 # su が使えるユーザを wheel グループに限定する
-- name: su wheel only required
+- name: su restricted to wheel group
   become: yes
   pamd:
     name: su
@@ -35,12 +47,12 @@
   package:
     name: sudo
 
-# sudo から %wheel を削除する
-- name: disable %wheel for sudo
-  become: yes
-  lineinfile:
-    path: /etc/sudoers
-    regexp: "^%{{ item }}[ \t]"
-    state: absent
-  with_items:
-  - wheel
+# # sudo から %wheel を削除する
+# - name: disable %wheel for sudo
+#   become: yes
+#   lineinfile:
+#     path: /etc/sudoers
+#     regexp: "^%{{ item }}[ \t]"
+#     state: absent
+#   with_items:
+#   - wheel

@@ -2,6 +2,7 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
+    - "_{{ ansible_hostname }}.yml"
     - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
     - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
@@ -69,6 +70,7 @@
     group: root
     mode: '0600'
   notify: prometheus-blackbox-exporter reload
+  tags: [ configure ]
 
 - block:
   - name: systemd service unit
@@ -86,6 +88,7 @@
       daemon_reload: yes
     notify: prometheus-node-exporter restart
   when: ansible_service_mgr == 'systemd'
+  tags: [ configure ]
 
 - name: auto start
   become: yes
@@ -103,3 +106,4 @@
     group: root
     mode: 0600
   when: goss_dir is defined
+  tags: [ configure ]

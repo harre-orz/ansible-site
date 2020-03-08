@@ -1,6 +1,6 @@
 ---
 nginx_error_log_file: /var/log/nginx/error.log
-nginx_pid_file: /run/nginx.pid
+
 nginx_server_error_page:
   '/40x.html':
   - 404

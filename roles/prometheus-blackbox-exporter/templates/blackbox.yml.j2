@@ -4,8 +4,32 @@ modules:
     timeout: 3s
     icmp:
       preferred_ip_protocol: ip4
+      ip_protocol_fallback: false
   icmp_v6:
     prober: icmp
     timeout: 3s
     icmp:
+      preferred_ip_protocol: ip6
+      ip_protocol_fallback: false
+  http_2xx:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+      method: GET
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
+      preferred_ip_protocol: ip4
+  http_2xx_v6:
+    prober: http
+    timeout: 5s
+    http:
+      valid_http_versions: ["HTTP/1.1", "HTTP/2"]
+      method: GET
+      fail_if_ssl: false
+      fail_if_not_ssl: false
+      tls_config:
+        insecure_skip_verify: true
       preferred_ip_protocol: ip6

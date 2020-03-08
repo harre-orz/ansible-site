@@ -10,7 +10,7 @@ User=root
 Group=root
 ExecReload=/bin/kill -HUP $MAINPID
 ExecStart=/usr/local/bin/blackbox_exporter \
-  --config.file={{ prometheus_blackbox_exporter_config_dir }}/blackbox.yml
+  --config.file={{ prometheus_blackbox_exporter_config_dir }}/blackbox.yml \
   --web.listen-address=[{{ prometheus_blackbox_exporter_listen_addr | ipaddr }}]:{{ prometheus_blackbox_exporter_listen_port | int }}
 
 SyslogIdentifier=prometheus-blackbox_exporter

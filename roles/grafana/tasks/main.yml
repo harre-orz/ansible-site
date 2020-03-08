@@ -11,8 +11,4 @@
     - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-- include: item.yml
-  with_dict:
-  - "{{ selfsigned_cert_fqdn }}"
-  when: selfsigned_cert_fqdn | type_debug == 'dict'
-  tags: [ configure ]
+- include: "install-{{ ansible_os_family | lower }}.yml"
