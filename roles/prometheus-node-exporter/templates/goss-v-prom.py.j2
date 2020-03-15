@@ -1,0 +1,30 @@
+#!/usr/bin/python
+
+import json
+import prometheus_client as pc
+import subprocess
+#import pprint
+
+{{ ansible_managed | comment }}
+GOSS_EXECUTABLE = '{{ goss_executable }}'
+GOSS_YAMLFILE = '{{ goss_dir }}/goss.yaml'
+PROM_TEXTFILE = '{{ prometheus_node_exporter_data_dir }}/textfile_collector/goss.prom'
+
+def main():
+  p = subprocess.Popen([GOSS_EXECUTABLE, '--gossfile', GOSS_YAMLFILE, 'v', '--format', 'json_oneline'], stdout=subprocess.PIPE)
+  j = json.load(p.stdout, encoding='utf-8')
+
+  t = pc.Gauge('goss_summary_test_count', 'test total count')
+  t.set(j['summary']['test-count'])
+
+  f = pc.Gauge('goss_summary_failed_count', 'test failed count')
+  f.set(j['summary']['failed-count'])
+
+  s = ['success', 'failed', 'skipped']
+  e = pc.Enum('goss_result_status', 'detail', ['resource_id', 'resource_type', 'property'], states=s)
+  for r in j['results']:
+    e.labels(resource_id=r['resource-id'], resource_type=r['resource-type'], property=r['property']).state(s[ r['result'] ])
+  pc.write_to_textfile(PROM_TEXTFILE, pc.REGISTRY)
+
+if __name__ == '__main__':
+  main()

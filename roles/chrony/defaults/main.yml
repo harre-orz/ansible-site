@@ -1,12 +1,14 @@
 ---
+# NTPサーバ (prefer付き)
+chrony_private_ntp_servers: []
+
 # NTPサーバ
-chrony_ntp_servers:
-- ntp1.jst.mfeed.ad.jp
-- ntp2.jst.mfeed.ad.jp
-- ntp3.jst.mfeed.ad.jp
+chrony_public_ntp_servers:
+- ntp.jst.mfeed.ad.jp  # stratum2
+#- pool.ntp.org         # stratum?
+#- ntp.nict.jp          # stratum1
+#- time.google.com      # stratum1
+#- time.cloudflare.com  # stratum3
 
 # タイムゾーン
 chrony_timezone: Asia/Tokyo
-
-# うるう秒を考慮をするか？
-chrony_use_slew: yes

@@ -1,0 +1,35 @@
+{{ ansible_managed | comment }}
+
+service:
+  node_exporter:
+    running: true
+    enabled: true
+command:
+  node_exporter:
+    exec: {{ prometheus_node_exporter_executable }} --version
+    exit-status: 0
+    stderr:
+    - "node_exporter, version {{ prometheus_node_exporter_version }} "
+port:
+{% if prometheus_node_exporter_listen_addr | ipv4('bool') %}
+  tcp:{{ prometheus_node_exporter_listen_port }}:
+    listening: true
+    ip:
+    - "{{ prometheus_node_exporter_listen_addr }}"
+{% endif %}
+{% if prometheus_node_exporter_listen_addr | ipv6('bool') %}
+  tcp6:{{ prometheus_node_exporter_listen_port }}:
+    listening: true
+    ip:
+    - "{{ prometheus_node_exporter_listen_addr }}"
+{% endif %}
+group:
+  node_exporter:
+    exists: true
+user:
+  node_exporter:
+    exists: true
+    groups:
+    - node_exporter
+    shell: /sbin/nologin
+    home: {{ prometheus_node_exporter_data_dir }}

@@ -1,5 +1,2 @@
 ---
 goss_version: 0.3.7
-
-# Rebuild gossfiles after all erase it
-goss_always_rebuild: no

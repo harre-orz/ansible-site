@@ -1,0 +1,6 @@
+{{ ansible_managed | comment }}
+
+service:
+  {{ crond_service }}:
+    running: true
+    enabled: true

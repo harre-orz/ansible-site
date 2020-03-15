@@ -1,12 +1,5 @@
 ---
-# パッケージ名
 chrony_package: chrony
-
-# 設定ファイル
 chrony_config_file: /etc/chrony.conf
-
-# キーファイル
-chrony_keyfile:
-
-# ドリフトファイル
 chrony_driftfile: /var/lib/chrony/drift
+chrony_keyfile:

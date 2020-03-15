@@ -1,24 +1,5 @@
 ---
-prometheus_htpasswd: /etc/nginx/.htpasswd
-prometheus_server_version: 2.16.0
-prometheus_alertmanager_version: 0.20.0
-prometheus_node_exporter_version: 0.18.1
-prometheus_blackbox_exporter_version: 0.16.0
-
-
-selfsigned_cert_fqdn:
-  'vps283628.vps.ovh.ca':
-    cert_dir: /etc/nginx/conf.d
-    private_dir: /etc/nginx/conf.d/
-
-
-nginx_server_http_enable: no
-nginx_server_https_enable: yes
-nginx_server_location:
-  '/':
-    proxy_pass: 'http://127.0.0.1:9090/'
-    auth_basic: Restricted
-    auth_basic_user_file: "{{ prometheus_htpasswd }}"
-
-nginx_server_ssl_certificate: /etc/nginx/conf.d/vps283628.vps.ovh.ca.crt
-nginx_server_ssl_certificate_key: /etc/nginx/conf.d/vps283628.vps.ovh.ca.key
+prometheus_server_listen_addr: '127.0.0.1'
+prometheus_alertmanager_listen_addr: '127.0.0.1'
+prometheus_node_exporter_listen_addr: '127.0.0.1'
+prometheus_blackbox_exporter_listen_addr: '127.0.0.1'

@@ -1,0 +1,6 @@
+---
+- hosts: NODE
+  become: yes
+  roles:
+  - goss
+  - prometheus-node-exporter

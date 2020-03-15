@@ -15,28 +15,46 @@ rule_files:
 
 scrape_configs:
   - job_name: 'prometheus'
-    metrics_path: /metrics
     static_configs:
     - targets:
-      - '[127.0.0.1]:9090'
-      - '[127.0.0.1]:9100'
-      - '[127.0.0.1]:9115'
+      - '127.0.0.1:9090'
+
+  - job_name: 'node'
+    file_sd_configs:
+    - files:
+      - "{{ prometheus_server_config_dir }}/file_sd/node-*.yml"
+
+  - job_name: 'blackbox'
+    static_configs:
+    - targets:
+      - '127.0.0.1:9115'
 
   - job_name: 'blackbox_icmp'
-    metrics_path: /probe
     params:
-      module:
-      - icmp
-    static_configs:
-      - targets:
-        - google.co.jp
-        labels:
-          instance: hoge
-          project: fuga
+      module: [icmp]
+    file_sd_configs:
+    - files:
+      - "{{ prometheus_server_config_dir }}/file_sd/blackbox_icmp-*.yml"
     relabel_configs:
     - source_labels: [__address__]
       target_label: __param_target
     - source_labels: [__param_target]
       target_label: instance
     - target_label: __address__
-      replacement: '[127.0.0.1]:9115'
+      replacement: '127.0.0.1:9115'
+
+  - job_name: 'blackbox_http_2xx'
+    scrape_interval: 15m
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    file_sd_configs:
+    - files:
+      - "{{ prometheus_server_config_dir }}/file_sd/blackbox_http_2xx-*.yml"
+    relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: '127.0.0.1:9115'

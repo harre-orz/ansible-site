@@ -1,4 +1,10 @@
 ---
+- name: sshd reload
+  become: yes
+  service:
+    name: "{{ sshd_service }}"
+    state: reloaded
+
 - name: sshd restart
   become: yes
   service:

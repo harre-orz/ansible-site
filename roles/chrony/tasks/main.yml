@@ -2,31 +2,27 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-# パッケージのインストールする
-- name: install
+- name: install chrony
   become: yes
   package:
     name: "{{ chrony_package }}"
   notify: chrony restart
 
-# 設定ファイルをバックアップする
 - name: backup the original config file
   become: true
   command: "cp -af {{ chrony_config_file }} {{ chrony_config_file }}.orig"
   args:
     creates: "{{ chrony_config_file }}.orig"
 
-# タイムゾーンを指定する
-# timezone module を使用すると相対パスになるので file module を使う
 - name: set timezone
   become: yes
   file:
@@ -37,19 +33,17 @@
     group: root
   notify: chrony restart
 
-# 設定ファイルを作成する
-- name: generate chrony.conf
+- name: put chrony.conf
   become: yes
   template:
-    src: chrony.conf
+    src: chrony.conf.j2
     dest: "{{ chrony_config_file }}"
     owner: root
     group: root
     mode: 0644
   notify: chrony restart
-  tags: [ configure ]
+  tags: [ reconfigure ]
 
-# 自動的に起動する
 - name: auto start
   become: yes
   service:
@@ -63,14 +57,15 @@
     path: "{{ chrony_config_file }}"
     checksum_algorithm: sha256
   register: _chrony_config_file_sha256
+  tags: [ reconfigure ]
 
 - name: put gossfile
   become: yes
   template:
-    src: goss.yml
+    src: goss.yml.j2
     dest: "{{ goss_dir }}/chrony.yml"
     owner: root
     group: root
     mode: 0600
   when: goss_dir is defined
-  tags: [ configure ]
+  tags: [ reconfigure ]

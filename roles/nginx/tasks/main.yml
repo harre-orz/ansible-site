@@ -2,13 +2,13 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
 - name: install
@@ -33,6 +33,7 @@
 - name: create nginx user
   user:
     name: nginx
+    group: nginx
     system: yes
     shell: /sbin/nologin
     home: /var/lib/nginx

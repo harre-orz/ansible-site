@@ -1,0 +1,33 @@
+---
+- name: remove old package
+  become: yes
+  yum:
+    name:
+    - docker
+    - docker-common
+    - docker-engine
+    state: removed
+
+- name: install dependents
+  become: yes
+  yum:
+    name:
+    - yum-utils
+    - device-mapper-persistent-data
+    - lvm2
+
+- name: add repo
+  become: yes
+  get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+
+- name: install
+  become: yes
+  yum:
+    name: docker-ce
+
+# - name: docker-py
+#   pip:
+#     name: docker-py
+#   tags: [ docker ]

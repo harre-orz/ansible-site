@@ -2,13 +2,13 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
 - name: required variables
@@ -56,12 +56,14 @@
   become: yes
   group:
     name: prometheus
+    system: yes
 
 - name: create prometheus user
   become: yes
   user:
     name: prometheus
     group: prometheus
+    system: yes
     shell: /sbin/nologin
     home: "{{ prometheus_server_data_dir }}"
     createhome: no
@@ -76,9 +78,8 @@
     mode: '0750'
   with_items:
     - "{{ prometheus_server_config_dir }}"
-    - "{{ prometheus_server_config_dir }}/conf.d"
     - "{{ prometheus_server_config_dir }}/rules"
-    - "{{ prometheus_server_config_dir }}/fule_sd"
+    - "{{ prometheus_server_config_dir }}/file_sd"
 
 - name: create data directory
   become: yes
@@ -98,18 +99,7 @@
     group: prometheus
     mode: '0640'
   notify: prometheus-server reload
-  tags: [ configure ]
-
-- name: put rules
-  become: yes
-  copy:
-    src: "{{ item }}"
-    dest: "{{ prometheus_server_config_dir }}/rules/{{ item | basename }}"
-    validate: '/usr/local/bin/promtool check rules %s'
-  with_fileglob:
-  - rules/*.yml
-  notify: prometheus-server reload
-  tags: [ configure ]
+  tags: [ reconfigure ]
 
 - block:
   - name: systemd service unit
@@ -128,7 +118,7 @@
       daemon_reload: yes
     notify: prometheus-server restart
   when: ansible_service_mgr == 'systemd'
-  tags: [ configure ]
+  tags: [ reconfigure ]
 
 - name: auto start
   become: yes
@@ -146,4 +136,4 @@
     group: root
     mode: '0600'
   when: goss_dir is defined
-  tags: [ configure ]
+  tags: [ reconfigure ]

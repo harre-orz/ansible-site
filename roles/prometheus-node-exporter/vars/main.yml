@@ -1,1 +1,4 @@
 ---
+prometheus_node_exporter_client_python_version: 0.7.1
+prometheus_node_exporter_data_dir: '/var/local/node_exporter'
+prometheus_node_exporter_executable: /usr/local/bin/node_exporter

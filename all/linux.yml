@@ -1,0 +1,10 @@
+---
+- hosts: ANSIBLE_MANAGED
+  become: yes
+  roles:
+  - goss
+  - wheel
+  - chrony
+  - postfix
+  - sshd
+  - crond

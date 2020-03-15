@@ -2,23 +2,21 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-# wheel グループを作成する
 - name: create wheel group
   become: yes
   group:
     name: wheel
     system: yes
 
-# ansible_user を wheel グループに追加する
 - name: join ansible_user to wheel
   become: yes
   user:
@@ -27,7 +25,6 @@
     append: yes
   when: wheel_join_ansible_user
 
-# su が使えるユーザを wheel グループに限定する
 - name: su restricted to wheel group
   become: yes
   pamd:
@@ -41,7 +38,6 @@
     module_arguments: 'use_uid'
     state: after
 
-# sudo をインストールする
 - name: install sudo
   become: yes
   package:
@@ -56,3 +52,14 @@
 #     state: absent
 #   with_items:
 #   - wheel
+
+- name: put gossfile
+  become: yes
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/wheel.yml"
+    owner: root
+    group: root
+    mode: '0600'
+  when: goss_dir is defined
+  tags: [ reconfigure ]

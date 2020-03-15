@@ -6,15 +6,15 @@ sshd_listen:
 #- { v4: 127.0.0.1, port: 12345 }
 
 # パスワード認証を許可するか
-sshd_allow_password: no    # 許可しない(公開鍵認証のみ)
-#sshd_allow_password: yes   # 許可する
+sshd_allow_password: yes   # 許可する
+#sshd_allow_password: no    # 許可しない(公開鍵認証のみ)
 
 # root のSSH接続を許可するか
-sshd_permit_root_login: no                      # 許可しない
 #sshd_permit_root_login: yes                     # 許可する(非推奨)
 #sshd_permit_root_login: prohibit-password       # パスワード認証は不可、公開鍵認証でログインが可能
-#sshd_permit_root_login: without-password        # without-password と全く同じ(過去互換のため？)
+#sshd_permit_root_login: without-password        # prohibit-password と全く同じ(過去互換のため？)
 #sshd_permit_root_login: forced-commands-only    # パスワード認証は不可、公開鍵認証でコマンド実行が可能
+sshd_permit_root_login: no                      # 許可しない
 
 # キープアライブ時間を指定する
 # 例: 60 interval * 3 count_max = 180 seconds
@@ -29,7 +29,7 @@ sshd_x11_forwarding: no
 
 # internal-sftp を使用するか
 sshd_use_internal_sftp: yes
-#sshd_user_internal_sftp: no  # レガシーの sftp を使用する
+#sshd_use_internal_sftp: no  # レガシーの sftp を使用する
 
 # 接続前に表示させるメッセージを指定する
 sshd_banner_file:

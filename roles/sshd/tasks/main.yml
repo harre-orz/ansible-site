@@ -2,43 +2,37 @@
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-# パッケージをインストールする
 - name: install sshd
   become: yes
   package:
     name: "{{ sshd_package }}"
 
-# ホストキーを生成する
 - name: generate host keys
   become: yes
-  shell: |
-    ssh-keygen -A
+  command: ssh-keygen -A
   args:
     creates: /etc/ssh/ssh_host_rsa_key
 
-# 設定ファイルをバックアップする
 - name: backup the original config file
   become: yes
   command: cp -af {{ sshd_config_file }} {{ sshd_config_file }}.orig
   args:
     creates: "{{ sshd_config_file }}.orig"
 
-# sshusers グループを作成する
 - name: create sshusers group
   become: yes
   group:
     name: sshusers
 
-# Ansible ユーザは sshusers グループに属する
 - name: join ansible_user to sshusers
   become: yes
   user:
@@ -46,20 +40,18 @@
     groups: sshusers
     append: yes
 
-# 設定ファイルを作成する
 - name: put sshd_config file
   become: yes
   template:
-    src: sshd_config
+    src: sshd_config.j2
     dest: "{{ sshd_config_file }}"
     owner: root
     group: root
     mode: "{{ sshd_config_file_perm }}"
     validate: "{{ sshd_executable }} -t -f %s"
   notify: sshd restart
-  tags: [ configure ]
+  tags: [ reconfigure ]
 
-# 自動的に起動する
 - name: auto start
   become: yes
   service:
@@ -73,14 +65,15 @@
     path: "{{ sshd_config_file }}"
     checksum_algorithm: sha256
   register: _sshd_config_file_sha256
+  tags: [ reconfigure ]
 
 - name: put gossfile
   become: yes
   template:
-    src: goss.yml
+    src: goss.yml.j2
     dest: "{{ goss_dir }}/sshd.yml"
     owner: root
     group: root
     mode: 0600
   when: goss_dir is defined
-  tags: [ configure ]
+  tags: [ reconfigure ]

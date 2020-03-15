@@ -1,5 +1,4 @@
 ---
-- hosts: LOCAL
+- hosts: GRAFANA
   roles:
-  - role: grafana
-    tags: grafana
+  - grafana

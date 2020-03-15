@@ -1,0 +1,16 @@
+---
+- hosts: PROMETHEUS
+  become: yes
+  roles:
+  - goss
+  - prometheus-server
+  - prometheus-alertmanager
+  - prometheus-blackbox-exporter
+  - selfsigned-cert
+  - nginx
+  tasks:
+  - name: make htpasswd
+    htpasswd:
+      path: "{{ prometheus_htpasswd }}"
+      name: "{{ prometheus_user }}"
+      password: "{{ prometheus_pass }}"

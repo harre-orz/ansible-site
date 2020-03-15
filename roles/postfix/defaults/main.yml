@@ -1,0 +1,6 @@
+---
+postfix_myorigin: ansible_fqdn
+
+postfix_relayhost:
+
+postfix_sasl_password: []

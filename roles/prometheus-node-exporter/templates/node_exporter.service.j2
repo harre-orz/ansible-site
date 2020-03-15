@@ -1,18 +1,24 @@
 {{ ansible_managed | comment }}
 
 [Unit]
-Description=Prometheus Node_exporter
+Description=Node Exporter
 After=network.target
 
 [Service]
 Type=simple
-User=root
-Group=root
+User=node_exporter
+Group=node_exporter
 ExecReload=/bin/kill -HUP $MAINPID
-ExecStart=/usr/local/bin/node_exporter \
+ExecStart={{ prometheus_node_exporter_executable }} \
+  --collector.filesystem.ignored-mount-points=^/(dev|proc|sys|run|var/lib/docker/.+)($|/) \
+  --collector.netclass.ignored-devices=^lo0?$ \
+  --collector.netdev.ignored-devices=^lo0?$ \
+  --collector.textfile.directory={{ prometheus_node_exporter_data_dir }}/textfile_collector \
+{% for name in prometheus_node_exporter_collectors %}
+  --collector.{{ name }} \
+{% endfor %}
   --web.listen-address=[{{ prometheus_node_exporter_listen_addr | ipaddr }}]:{{ prometheus_node_exporter_listen_port | int }}
-
-SyslogIdentifier=prometheus-node_exporter
+SyslogIdentifier=node_exporter
 Restart=always
 
 [Install]

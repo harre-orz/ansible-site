@@ -1,0 +1,12 @@
+---
+- name: install cyrus sasl
+  become: yes
+  package:
+    name: cyrus-sasl
+
+- name: auto start
+  become: yes
+  service:
+    name: saslauthd
+    state: started
+    enabled: yes

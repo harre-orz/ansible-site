@@ -1,0 +1,5 @@
+---
+- hosts: PROMETHEUS
+  become: yes
+  roles:
+  - docker

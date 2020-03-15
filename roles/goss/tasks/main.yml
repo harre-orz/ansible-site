@@ -1,36 +1,21 @@
 ---
-# アーキテクチャを確認する
 - name: gather variables for each operating system
   include_vars: "{{ item }}"
   with_first_found:
-    - "_{{ ansible_hostname }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_distribution | lower }}.yml"
-    - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
-    - "{{ ansible_os_family | lower }}.yml"
+  - "_{{ ansible_hostname }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
   tags: [ always ]
 
-# ホスト名を確認する
-- name: check if matches hostname and inventory
+- name: validate inventory name
   assert:
     that: ansible_hostname == inventory_hostname
-  when: ansible_connection != 'local'
 
-# SELinux が無効になっていること
-- name: check if selinux disabled
-  assert:
-    that: ansible_selinux.status == 'disabled'
-  when: not ansible_selinux
-
-# AppArmor が無効になっていること
-- name: check if apparmor disabled
-  shell: '[ ! "$(which aa-enabled > /dev/null && aa-enabled)" = "Yes" ]'
-  changed_when: no
-
-# インストールする
-- name: install
+- name: install goss
   become: yes
   get_url:
     url: "https://github.com/aelsabbahy/goss/releases/download/v{{ goss_version }}/goss-{{ goss_arch }}"
@@ -39,15 +24,6 @@
     group: root
     mode: 0700
 
-# ファイルをすべて削除する
-- name: erase all gossfiles
-  become: yes
-  file:
-    path: "{{ goss_dir }}/"
-    state: absent
-  when: goss_always_rebuild
-
-# ディレクトリを作成する
 - name: make directory
   become: yes
   file:
@@ -60,8 +36,7 @@
     - /usr/local/share/ansible/
     - "{{ goss_dir }}"
 
-# モジュールをインストールする
-- name: install ansible_goss module
+- name: install ansible_goss.py
   become: yes
   get_url:
     url: "https://raw.githubusercontent.com/indusbox/goss-ansible/{{ goss_ansible_goss_py_version }}/goss.py"
@@ -70,7 +45,7 @@
     group: root
     mode: 0644
 
-- name: put top-level gossfile
+- name: put gossfile
   become: yes
   template:
     src: goss.yaml
