@@ -1,0 +1,70 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: install chrony
+  become: yes
+  package:
+    name: "{{ chrony_package }}"
+  notify: chrony restart
+
+- name: backup the original config file
+  become: true
+  command: "cp -af {{ chrony_config_file }} {{ chrony_config_file }}.orig"
+  args:
+    creates: "{{ chrony_config_file }}.orig"
+
+- name: set timezone
+  become: yes
+  file:
+    path: /etc/localtime
+    state: link
+    src: "/usr/share/zoneinfo/{{ chrony_timezone }}"
+    owner: root
+    group: root
+  notify: chrony restart
+
+- name: put chrony.conf
+  become: yes
+  template:
+    src: chrony.conf.j2
+    dest: "{{ chrony_config_file }}"
+    owner: root
+    group: root
+    mode: 0644
+  notify: chrony restart
+  tags: reconfigure
+
+- name: auto start
+  become: yes
+  service:
+    name: chronyd
+    state: started
+    enabled: yes
+
+- name: get sha256 in chrony_config_file
+  become: yes
+  stat:
+    path: "{{ chrony_config_file }}"
+    checksum_algorithm: sha256
+  register: _chrony_config_file_sha256
+  tags: reconfigure
+
+- name: put gossfile
+  become: yes
+  when: goss_dir is defined
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/chrony.yml"
+    owner: root
+    group: root
+    mode: 0600
+  tags: reconfigure

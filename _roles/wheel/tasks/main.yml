@@ -1,0 +1,86 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: check
+  assert:
+    that:
+    - not ( not wheel_allow_sudo and wheel_enable_sudo_nopasswd )
+    fail_msg: '禁止されている組み合わせ'
+
+- name: create wheel group
+  become: yes
+  group:
+    name: wheel
+    system: yes
+
+- name: join ansible_user to wheel
+  become: yes
+  user:
+    name: "{{ ansible_user }}"
+    groups: wheel
+    append: yes
+  when: wheel_join_ansible_user
+
+- name: su restricted to wheel group
+  become: yes
+  pamd:
+    name: su
+    type: auth
+    control: sufficient
+    module_path: pam_rootok.so
+    new_type: auth
+    new_control: required
+    new_module_path: pam_wheel.so
+    module_arguments: 'use_uid'
+    state: after
+
+- name: install sudo
+  become: yes
+  package:
+    name: sudo
+
+- name: toggle %wheel for sudo
+  become: yes
+  lineinfile:
+    path: /etc/sudoers
+    regexp: '^#?\s*%wheel\s+ALL=\(ALL\)\s+ALL\s*$'
+    line: |
+      {% if wheel_allow_sudo and not wheel_enable_sudo_nopasswd %}
+      %wheel ALL=(ALL) ALL
+      {% else %}
+      # %wheel ALL=(ALL) ALL
+      {% endif %}
+    validate: visudo -cf %s
+
+- name: toggle %wheel NOPASSWD for sudo
+  become: yes
+  lineinfile:
+    path: /etc/sudoers
+    regexp: '^#?\s*%wheel\s+ALL=\(ALL\)\s+NOPASSWD:\s+ALL\s*$'
+    line: |
+      {% if wheel_allow_sudo and wheel_enable_sudo_nopasswd %}
+      %wheel ALL=(ALL) NOPASSWD: ALL
+      {% else %}
+      # %wheel ALL=(ALL) NOPASSWD: ALL
+      {% endif %}
+    validate: visudo -cf %s
+
+- name: put gossfile
+  become: yes
+  when: goss_dir is defined
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/wheel.yml"
+    owner: root
+    group: root
+    mode: '0600'
+  tags: reconfigure

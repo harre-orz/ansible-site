@@ -1,0 +1,55 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: validate inventory name
+  when: ansible_connection != 'local'
+  assert:
+    that: ansible_hostname == inventory_hostname
+
+- name: install goss
+  become: yes
+  get_url:
+    url: "https://github.com/aelsabbahy/goss/releases/download/v{{ goss_version }}/goss-{{ goss_arch }}"
+    dest: "{{ goss_executable }}"
+    owner: root
+    group: root
+    mode: 0700
+
+- name: make directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - /usr/local/share/ansible/
+    - "{{ goss_dir }}"
+
+- name: install ansible_goss.py
+  become: yes
+  get_url:
+    url: "https://raw.githubusercontent.com/indusbox/goss-ansible/{{ goss_ansible_goss_py_version }}/goss.py"
+    dest: /usr/local/share/ansible/goss.py
+    owner: root
+    group: root
+    mode: 0644
+
+- name: put gossfile
+  become: yes
+  template:
+    src: goss.yaml
+    dest: "{{ goss_dir }}/goss.yaml"
+    owner: root
+    group: root
+    mode: 0600

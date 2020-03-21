@@ -1,0 +1,10 @@
+---
+# ansible_user を wheel グループに追加するか？
+# ansible_become_method=su の場合に接続ができなくなるので救済措置
+wheel_join_ansible_user: no
+
+# wheel グループは sudo を許可するか？
+wheel_allow_sudo: yes
+
+# パスワードレスにするか？
+wheel_enable_sudo_nopasswd: no

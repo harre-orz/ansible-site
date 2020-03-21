@@ -1,0 +1,169 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: required variables
+  assert:
+    that:
+    - prometheus_node_exporter_version != 'X.Y.Z'
+
+- name: set fact
+  set_fact:
+    _prometheus_node_exporter_basename: "node_exporter-{{ prometheus_node_exporter_version }}.{{ prometheus_node_exporter_arch }}"
+
+- name: "'0.0.0.0' of listen addr convert to '::'"
+  set_fact:
+    prometheus_node_exporter_listen_addr: '::'
+  when: prometheus_node_exporter_listen_addr == '0.0.0.0'
+
+- name: download node_exporter to local
+  delegate_to: localhost
+  become: no
+  get_url:
+    url: "https://github.com/prometheus/node_exporter/releases/download/\
+          v{{ prometheus_node_exporter_version }}/{{ _prometheus_node_exporter_basename }}.tar.gz"
+    dest: "/tmp/{{ _prometheus_node_exporter_basename }}.tar.gz"
+  changed_when: no
+  check_mode: no
+
+- name: unpack node_exporter to local
+  delegate_to: localhost
+  become: no
+  unarchive:
+    src: "/tmp/{{ _prometheus_node_exporter_basename }}.tar.gz"
+    dest: "/tmp"
+  changed_when: no
+  check_mode: no
+
+- name: install node_exporter
+  become: yes
+  copy:
+    src: "/tmp/{{ _prometheus_node_exporter_basename }}/node_exporter"
+    dest: "{{ prometheus_node_exporter_executable }}"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: create node_exporter group
+  become: yes
+  group:
+    name: node_exporter
+    system: yes
+
+- name: create node_exporter user
+  become: yes
+  user:
+    name: node_exporter
+    group: node_exporter
+    system: yes
+    shell: /sbin/nologin
+    home: "{{ prometheus_node_exporter_data_dir }}"
+    createhome: no
+
+- name: create textfile directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: node_exporter
+    group: node_exporter
+    mode: '0750'
+  with_items:
+  - "{{ prometheus_node_exporter_data_dir }}"
+  - "{{ prometheus_node_exporter_data_dir }}/textfile_collector"
+
+- name: download client_python to local
+  delegate_to: localhost
+  become: no
+  get_url:
+    url: "https://github.com/prometheus/client_python/archive/v{{ prometheus_node_exporter_client_python_version }}.tar.gz"
+    dest: "/tmp/client_python.tar.gz"
+  changed_when: no
+  check_mode: no
+
+- name: unpack client_python to local
+  delegate_to: localhost
+  become: no
+  unarchive:
+    src: "/tmp/client_python.tar.gz"
+    dest: "/tmp"
+  changed_when: no
+  check_mode: no
+
+- name: install client_python
+  become: yes
+  copy:
+    src: "/tmp/client_python-{{ prometheus_node_exporter_client_python_version }}/prometheus_client"
+    dest: "{{ prometheus_node_exporter_data_dir }}/textfile_collector"
+    owner: root
+    group: root
+    mode: preserve
+
+- name: systemd block
+  when: ansible_service_mgr == 'systemd'
+  block:
+
+  - name: systemd service unit
+    become: yes
+    template:
+      src: node_exporter.service.j2
+      dest: /etc/systemd/system/node_exporter.service
+      owner: root
+      group: root
+      mode: '0644'
+    notify: prometheus-node-exporter restart
+    tags: reconfigure
+
+  - name: daemon reload
+    become: yes
+    systemd:
+      name: node_exporter
+      daemon_reload: yes
+    tags: reconfigure
+
+- name: auto start
+  become: yes
+  service:
+    name: node_exporter
+    state: started
+    enabled: yes
+
+- name: gossfile block
+  when: goss_dir is defined
+  block:
+
+  - name: put goss-v-prom.py
+    become: yes
+    template:
+      src: goss-v-prom.py.j2
+      dest: "{{ prometheus_node_exporter_data_dir }}/textfile_collector/goss-v-prom.py"
+      owner: root
+      group: root
+      mode: 0700
+
+  - name: cron goss-v-prom.py
+    become: yes
+    cron:
+      name: goss-v-prom.py
+      job: "(cd {{ prometheus_node_exporter_data_dir }}/textfile_collector; ./goss-v-prom.py)"
+      minute: '*/5'
+      cron_file: goss
+      user: root
+
+  - name: put gossfile
+    become: yes
+    template:
+      src: goss.yml.j2
+      dest: "{{ goss_dir }}/prometheus-node-exporter.yml"
+      owner: root
+      group: root
+      mode: 0600
+    tags: reconfigure

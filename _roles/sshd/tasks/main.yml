@@ -1,0 +1,78 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: install sshd
+  become: yes
+  package:
+    name: "{{ sshd_package }}"
+
+- name: generate host keys
+  become: yes
+  command: ssh-keygen -A
+  args:
+    creates: /etc/ssh/ssh_host_rsa_key
+
+- name: backup the original config file
+  become: yes
+  command: cp -af {{ sshd_config_file }} {{ sshd_config_file }}.orig
+  args:
+    creates: "{{ sshd_config_file }}.orig"
+
+- name: create sshusers group
+  become: yes
+  group:
+    name: sshusers
+
+- name: join ansible_user to sshusers
+  become: yes
+  user:
+    name: "{{ ansible_user }}"
+    groups: sshusers
+    append: yes
+
+- name: put sshd_config file
+  become: yes
+  template:
+    src: sshd_config.j2
+    dest: "{{ sshd_config_file }}"
+    owner: root
+    group: root
+    mode: "{{ sshd_config_file_perm }}"
+    validate: "{{ sshd_executable }} -t -f %s"
+  notify: sshd restart
+  tags: reconfigure
+
+- name: auto start
+  become: yes
+  service:
+    name: "{{ sshd_service }}"
+    state: started
+    enabled: true
+
+- name: get sha256 in sshd_config file
+  become: yes
+  stat:
+    path: "{{ sshd_config_file }}"
+    checksum_algorithm: sha256
+  register: _sshd_config_file_sha256
+  tags: reconfigure
+
+- name: put gossfile
+  become: yes
+  when: goss_dir is defined
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/sshd.yml"
+    owner: root
+    group: root
+    mode: '0600'
+  tags: reconfigure

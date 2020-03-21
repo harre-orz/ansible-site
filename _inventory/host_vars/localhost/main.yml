@@ -1,0 +1,3 @@
+---
+wheel_allow_sudo: yes
+wheel_enable_sudo_nopasswd: yes

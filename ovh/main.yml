@@ -6,6 +6,7 @@
   - chrony
   - wheel
   - sshd
+  - postfix
   - ovh
   tasks:
   - include: "syncthing.yml"

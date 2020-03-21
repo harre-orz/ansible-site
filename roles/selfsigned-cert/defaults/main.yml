@@ -1,9 +1,0 @@
----
-# 自己署名証明書
-# <設定例>
-# selfsigned_cert_fqdn:
-#   'www.example.com':                  # FQDN を指定
-#     cert_dir: /etc/pki/ssl/certs      # 配置場所を指定。省略した場合は selfsigned_cert_cert_dir が使われる
-#     private_dir: /etc/pki/ssl/private # 配置場所を指定。省略した場合は selfsigned_cert_private_dir が使われる
-#   'www2.example.com':
-selfsigned_cert_fqdn:

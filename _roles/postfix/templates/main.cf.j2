@@ -1,0 +1,110 @@
+{{ ansible_managed | comment }}
+
+# COMPATIBILITY
+compatibility_level = 2
+
+# SOFT BOUNCE
+#soft_bounce = no
+
+# LOCAL PATHNAME INFORMATION
+queue_directory = /var/spool/postfix
+command_directory = {{ postfix_command_directory }}
+daemon_directory = {{ postfix_daemon_directory }}
+data_directory = /var/lib/postfix
+
+# QUEUE AND PROCESS OWNERSHIP
+mail_owner = postfix
+#default_privs = nobody
+
+# INTERNET HOST AND DOMAIN NAMES
+myhostname = {{ postfix_myhostname }}
+#mydomain = domain.tld
+
+# SENDING MAIL
+#myorigin = $myhostname
+
+# RECEIVING MAIL
+inet_interfaces = localhost
+inet_protocols = all
+#proxy_interfaces = 1.2.3.4
+mydestination = $myhostname, localhost.$mydomain, localhost
+#local_recipient_maps = unix:passwd.byname $alias_maps
+unknown_local_recipient_reject_code = 550
+
+# TRUST AND RELAY CONTROL
+#mynetworks_style = subnet
+#mynetworks = 168.100.189.0/28, 127.0.0.0/8
+#relay_domains = $mydestination
+
+# INTERNET OR INTRANET
+{% if postfix_relayhost %}
+relayhost = {{ postfix_relayhost }}
+{% else %}
+#relayhost = [gateway.my.domain]
+{% endif %}
+
+# REJECTING UNKNOWN RELAY USERS
+#relay_recipient_maps = hash:/etc/postfix/relay_recipients
+
+# INPUT RATE CONTROL
+#in_flow_delay = 1s
+
+# ALIAS DATABASE
+alias_maps = hash:/etc/aliases
+alias_database = hash:/etc/aliases
+
+# ADDRESS EXTENSIONS (e.g., user+foo)
+#recipient_delimiter = +
+
+# DELIVERY TO MAILBOX
+#home_mailbox = Mailbox
+#home_mailbox = Maildir/
+#mail_spool_directory = /var/mail
+#mail_spool_directory = /var/spool/mail
+#mailbox_command = /some/where/procmail
+#mailbox_command = /some/where/procmail -a "$EXTENSION"
+#mailbox_transport = lmtp:unix:/var/lib/imap/socket/lmtp
+#mailbox_transport = cyrus
+#fallback_transport = lmtp:unix:/var/lib/imap/socket/lmtp
+#luser_relay = $user@other.host
+
+# JUNK MAIL CONTROLS
+#header_checks = regexp:/etc/postfix/header_checks
+
+# FAST ETRN SERVICE
+#fast_flush_domains = $relay_domains
+
+# SHOW SOFTWARE VERSION OR NOT
+#smtpd_banner = $myhostname ESMTP $mail_name
+#smtpd_banner = $myhostname ESMTP $mail_name ($mail_version)
+
+# PARALLEL DELIVERY TO THE SAME DESTINATION
+#local_destination_concurrency_limit = 2
+#default_destination_concurrency_limit = 20
+
+# DEBUGGING CONTROL
+debug_peer_level = 2
+#debug_peer_list = 127.0.0.1
+debugger_command =
+         PATH=/bin:/usr/bin:/usr/local/bin:/usr/X11R6/bin
+         ddd $daemon_directory/$process_name $process_id & sleep 5
+
+# INSTALL-TIME CONFIGURATION INFORMATION
+sendmail_path = {{ postfix_sendmail_path }}
+newaliases_path = {{ postfix_newaliases_path }}
+mailq_path = {{ postfix_mailq_path }}
+setgid_group = postdrop
+html_directory = no
+manpage_directory = {{ postfix_manpage_directory }}
+sample_directory = {{ postfix_sample_directory }}
+readme_directory = {{ postfix_readme_directory }}
+
+{% if postfix_sasl_passwd.keys() | length > 0 %}
+smtp_use_tls = yes
+smtp_tls_security_level = may
+smtp_tls_CApath = {{ postfix_smtp_tls_capath }}
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:{{ postfix_sasl_passwd_file }}
+smtp_sasl_tls_security_options = noanonymous
+smtp_sasl_mechanism_filter = plain
+{% endif %}

@@ -1,0 +1,11 @@
+---
+- name: ovh netplan configuration
+  become: yes
+  template:
+    src: cloud-init-ipv6.yaml
+    dest: /etc/netplan/51-cloud-init-ipv6.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  notify: ovh apply netplan
+  tags: reconfigure

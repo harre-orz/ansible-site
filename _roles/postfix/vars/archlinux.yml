@@ -1,0 +1,10 @@
+---
+postfix_command_directory: /usr/bin
+postfix_daemon_directory: /usr/lib/postfix/bin
+postfix_sendmail_path: /usr/bin/sendmail
+postfix_newaliases_path: /usr/bin/newaliases
+postfix_mailq_path: /usr/bin/mailq
+postfix_manpage_directory: /usr/share/man
+postfix_sample_directory: /etc/postfix
+postfix_readme_directory: /usr/share/doc/postfix
+postfix_smtp_tls_capath: /etc/ssl/certs/ca-certificates.crt

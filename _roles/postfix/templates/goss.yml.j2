@@ -1,0 +1,21 @@
+{{ ansible_managed | comment }}
+
+service:
+  postfix:
+    running: true
+    enabled: true
+port:
+  tcp:25:
+    listening: true
+    ip:
+    - '127.0.0.1'
+#  tcp6:25:
+#    listening: true
+#    ip:
+#    - '::1'
+user:
+  postfix:
+    exists: true
+group:
+  postfix:
+    exists: true

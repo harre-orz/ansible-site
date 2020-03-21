@@ -1,0 +1,6 @@
+---
+postfix_myhostname: "{{ ansible_nodename }}"
+
+postfix_relayhost: ''
+
+postfix_sasl_passwd: {}

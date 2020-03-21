@@ -1,0 +1,139 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: required variables
+  assert:
+    that:
+    - prometheus_alertmanager_version != 'X.Y.Z'
+
+- name: set fact
+  set_fact:
+    _prometheus_alertmanager_basename: "alertmanager-{{ prometheus_alertmanager_version }}.{{ prometheus_alertmanager_arch }}"
+
+- name: download to local
+  delegate_to: localhost
+  become: no
+  get_url:
+    url: "https://github.com/prometheus/alertmanager/releases/download/\
+          v{{ prometheus_alertmanager_version }}/{{ _prometheus_alertmanager_basename }}.tar.gz"
+    dest: "/tmp/{{ _prometheus_alertmanager_basename }}.tar.gz"
+  changed_when: no
+  check_mode: no
+
+- name: unpack to local
+  delegate_to: localhost
+  become: no
+  unarchive:
+    src: "/tmp/{{ _prometheus_alertmanager_basename }}.tar.gz"
+    dest: "/tmp"
+  changed_when: no
+  check_mode: no
+
+- name: install
+  become: yes
+  copy:
+    src: "/tmp/{{ _prometheus_alertmanager_basename }}/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+  - alertmanager
+  - amtool
+  notify: prometheus-alertmanager restart
+
+- name: create alertmanager group
+  become: yes
+  group:
+    name: alertmanager
+
+- name: create alertmanager user
+  become: yes
+  user:
+    name: alertmanager
+    group: alertmanager
+    shell: /sbin/nologin
+    home: "{{ prometheus_alertmanager_data_dir }}"
+    createhome: no
+
+- name: create config directory
+  become: yes
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: alertmanager
+    mode: '0750'
+  with_items:
+  - "{{ prometheus_alertmanager_config_dir }}"
+  - "{{ prometheus_alertmanager_config_dir }}/conf.d"
+  - "{{ prometheus_alertmanager_config_dir }}template"
+
+- name: create data directory
+  become: yes
+  file:
+    path: "{{ prometheus_alertmanager_data_dir }}"
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+    mode: '0750'
+
+- name: put config
+  become: yes
+  template:
+    src: alertmanager.yml.j2
+    dest: "{{ prometheus_alertmanager_config_dir }}/alertmanager.yml"
+    owner: root
+    group: alertmanager
+    mode: '0640'
+  notify: prometheus-alertmanager restart
+  tags: reconfigure
+
+- name: systemd block
+  when: ansible_service_mgr == 'systemd'
+  block:
+
+  - name: systemd service unit
+    become: yes
+    template:
+      src: alertmanager.service.j2
+      dest: /etc/systemd/system/alertmanager.service
+      owner: root
+      group: root
+      mode: '0644'
+    notify: prometheus-alertmanager restart
+    tags: reconfigure
+
+  - name: daemon reload
+    become: yes
+    systemd:
+      name: alertmanager
+      daemon_reload: yes
+    tags: reconfigure
+
+- name: auto start
+  become: yes
+  service:
+    name: alertmanager
+    state: started
+    enabled: yes
+
+- name: put gossfile
+  become: yes
+  when: goss_dir is defined
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/prometheus-alertmanager.yml"
+    owner: root
+    group: root
+    mode: 0600
+  tags: [ configure ]

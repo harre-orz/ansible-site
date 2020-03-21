@@ -1,0 +1,91 @@
+---
+- name: gather variables for each operating system
+  include_vars: "{{ item }}"
+  with_first_found:
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_architecture | lower }}/{{ ansible_os_family | lower }}.yml"
+  - "{{ ansible_distribution | lower }}-{{ ansible_distribution_major_version }}.yml"
+  - "{{ ansible_distribution | lower }}.yml"
+  - "{{ ansible_os_family | lower }}.yml"
+  tags: always
+
+- name: cyrus-sasl block
+  when: postfix_sasl_passwd.keys() | length > 0
+  block:
+  - name: install cyrus-sasl
+    become: yes
+    package:
+      name: cyrus-sasl
+
+  - name: put sasl_passwd
+    become: yes
+    copy:
+      content: |
+        {% for key, val in postfix_sasl_passwd.items() %}
+        {{ key }} {{ val.user }}:{{ val.pass }}
+        {% endfor %}
+      dest: "{{ postfix_sasl_passwd_file }}"
+      owner: root
+      group: root
+      mode: 0600
+    notify: postfix postmap sasl_password
+    tags: reconfigure
+
+  - name: auto start cyrus-sasl
+    become: yes
+    service:
+      name: saslauthd
+      state: started
+      enabled: yes
+
+- name: install postfix
+  become: yes
+  package:
+    name: postfix
+
+- name: backup the original config file
+  become: yes
+  command: cp -af {{ item }} {{ item }}.orig
+  args:
+    creates: "{{ item }}.orig"
+  with_items:
+  - "/etc/postfix/main.cf"
+  - "/etc/postfix/master.cf"
+
+- name: put main.cf
+  become: yes
+  template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    owner: root
+    group: root
+    mode: 0644
+  notify: postfix reload
+  tags: reconfigure
+
+- name: auto start
+  become: yes
+  service:
+    name: postfix
+    state: started
+    enabled: yes
+
+- name: get sha256 in main_cf file
+  become: yes
+  stat:
+    path: /etc/postfix/main.cf
+    checksum_algorithm: sha256
+  register: _sshd_config_file_sha256
+  tags: reconfigure
+
+- name: put gossfile
+  become: yes
+  when: goss_dir is defined
+  template:
+    src: goss.yml.j2
+    dest: "{{ goss_dir }}/postfix.yml"
+    owner: root
+    group: root
+    mode: 0600
+  tags: reconfigure

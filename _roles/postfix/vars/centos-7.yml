@@ -1,0 +1,10 @@
+---
+postfix_command_directory: /usr/sbin
+postfix_daemon_directory: /usr/libexec/postfix
+postfix_sendmail_path: /usr/sbin/sendmai.postfix
+postfix_newaliases_path: /usr/bin/newaliases.postfix
+postfix_mailq_path: /usr/bin/mailq.postfix
+postfix_manpage_directory: /usr/share/man
+postfix_sample_directory: /usr/share/doc/postfix-2.10.1/samples
+postfix_readme_directory: /usr/share/doc/postfix-2.10.1/README_FILES
+postfix_smtp_tls_capath: /etc/pki/tls/certs/ca-bundle.crt
